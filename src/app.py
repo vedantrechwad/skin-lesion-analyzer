@@ -22,8 +22,12 @@ from model import SkinLesionClassifier, load_model
 matplotlib.use("Agg")
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DATA_DIR = PROJECT_ROOT / "data"
+IMAGE_DIR = DATA_DIR / "images"
+OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-CHECKPOINT = Path("outputs/best_model.pth")
+CHECKPOINT = OUTPUTS_DIR / "best_model.pth"
 DEFAULT_THRESHOLD = 0.50
 HISTORY_COLUMNS = [
     "Time",
@@ -44,9 +48,9 @@ SKIN_CARE_SOURCES = {
     "MedlinePlus Skin Care": "https://medlineplus.gov/skinconditions.html",
 }
 PLOT_FILES = {
-    "Confusion Matrix": Path("outputs/confusion_matrix.png"),
-    "ROC Curve": Path("outputs/roc_curve.png"),
-    "Training History": Path("outputs/training_history.png"),
+    "Confusion Matrix": OUTPUTS_DIR / "confusion_matrix.png",
+    "ROC Curve": OUTPUTS_DIR / "roc_curve.png",
+    "Training History": OUTPUTS_DIR / "training_history.png",
 }
 
 model = None
@@ -101,8 +105,8 @@ def empty_history_df() -> pd.DataFrame:
 
 
 def discover_example_images(limit: int = 6) -> list[list[str]]:
-    val_csv = Path("data/val.csv")
-    image_dir = Path("data/images")
+    val_csv = DATA_DIR / "val.csv"
+    image_dir = IMAGE_DIR
     if not val_csv.exists() or not image_dir.exists():
         return []
 
