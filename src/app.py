@@ -17,7 +17,11 @@ from PIL import Image
 
 from dataset import CLASS_NAMES, IMAGE_SIZE, get_transforms
 from gradcam import GradCAM, overlay_heatmap
-from model import SkinLesionClassifier, load_model
+from model import SkinLesionClassifier, load_model, load_model_auto
+from dataset_multiclass import MULTICLASS_NAMES, RISK_LEVELS, RISK_COLORS
+from tta import predict_with_tta
+from abcde import analyze_abcde, create_abcde_visualization
+from report_pdf import generate_report
 
 matplotlib.use("Agg")
 
@@ -28,6 +32,7 @@ IMAGE_DIR = DATA_DIR / "images"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CHECKPOINT = OUTPUTS_DIR / "best_model.pth"
+MULTICLASS_CHECKPOINT = OUTPUTS_DIR / "best_model_multiclass.pth"
 DEFAULT_THRESHOLD = 0.50
 HISTORY_COLUMNS = [
     "Time",
@@ -54,6 +59,15 @@ PLOT_FILES = {
 }
 
 model = None
+multiclass_model = None
+
+def get_multiclass_model():
+    global multiclass_model
+    if multiclass_model is None:
+        if MULTICLASS_CHECKPOINT.exists():
+            multiclass_model, _, _, _ = load_model_auto(str(MULTICLASS_CHECKPOINT), DEVICE)
+            multiclass_model.eval()
+    return multiclass_model
 
 
 def get_model():
@@ -471,13 +485,14 @@ def load_pil_image(file_obj) -> Image.Image:
     return Image.open(path).convert("RGB")
 
 
-def analyze_image(image: Image.Image, threshold: float, source_name: str) -> dict:
+def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tta: bool = False, run_abcde: bool = False) -> dict:
     model = get_model()
     transform = get_transforms("val")
 
     pil_resized = image.resize((IMAGE_SIZE, IMAGE_SIZE)).convert("RGB")
     tensor = transform(pil_resized).to(DEVICE)
 
+    # ── Grad-CAM ──
     gradcam = GradCAM(model)
     heatmap, _, _ = gradcam.generate(tensor)
 
@@ -485,9 +500,13 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str) -> dic
     blended = overlay_heatmap(original_np, heatmap, alpha=0.45)
     visual_path = create_visualization_figure(original_np, blended)
 
-    with torch.no_grad():
-        outputs = model(tensor.unsqueeze(0))
-        probs = torch.softmax(outputs, dim=1)[0].cpu().numpy()
+    # ── Binary Inference ──
+    if use_tta:
+        probs = predict_with_tta(model, pil_resized, DEVICE)
+    else:
+        with torch.no_grad():
+            outputs = model(tensor.unsqueeze(0))
+            probs = torch.softmax(outputs, dim=1)[0].cpu().numpy()
 
     benign_prob = float(probs[0])
     malignant_prob = float(probs[1])
@@ -495,6 +514,49 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str) -> dic
     decision = CLASS_NAMES[decision_idx]
     confidence = malignant_prob if decision_idx == 1 else benign_prob
     risk_band = resolve_risk_band(malignant_prob)
+
+    binary_result = {
+        "decision": decision, 
+        "confidence": confidence, 
+        "benign_prob": benign_prob,
+        "malignant_prob": malignant_prob, 
+        "threshold": threshold, 
+        "risk_band": risk_band
+    }
+
+    # ── Multi-class Inference ──
+    mc_model = get_multiclass_model()
+    multiclass_result = None
+    mc_visual_path = None
+    if mc_model is not None:
+        if use_tta:
+            mc_probs = predict_with_tta(mc_model, pil_resized, DEVICE)
+        else:
+            with torch.no_grad():
+                outputs = mc_model(tensor.unsqueeze(0))
+                mc_probs = torch.softmax(outputs, dim=1)[0].cpu().numpy()
+        
+        top_idx = int(np.argmax(mc_probs))
+        top_class = MULTICLASS_NAMES[top_idx]
+        risk_level = RISK_LEVELS[top_class]
+        
+        # Build multi-class output dict
+        mc_prob_dict = {name: float(prob) for name, prob in zip(MULTICLASS_NAMES, mc_probs)}
+        multiclass_result = {
+            "top_class": top_class,
+            "risk_level": risk_level,
+            "probabilities": mc_prob_dict,
+        }
+        
+        # Build bar chart for multi-class
+        mc_visual_path = create_multiclass_figure(mc_prob_dict, top_class, risk_level)
+
+    # ── ABCDE Analysis ──
+    abcde_res = None
+    abcde_visual_path = None
+    if run_abcde:
+        abcde_res = analyze_abcde(pil_resized)
+        abcde_visual_path = create_abcde_visualization_wrapper(pil_resized, abcde_res)
 
     if decision_idx == 0:
         advice = (
@@ -516,7 +578,17 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str) -> dic
         "Malignant %": f"{malignant_prob * 100:.1f}%",
         "Threshold %": f"{threshold * 100:.0f}%",
     }
-    report_path = create_report_card(original_np, blended, record)
+    
+    # Generate integrated PDF report
+    report_path = generate_report(
+        original_image=image,
+        gradcam_image=blended,
+        binary_result=binary_result,
+        multiclass_result=multiclass_result,
+        abcde_result=abcde_res,
+        metadata=None,
+    )
+    
     result_html = build_result_html(
         decision=decision,
         risk_band=risk_band,
@@ -536,15 +608,73 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str) -> dic
         "benign_prob": benign_prob,
         "decision": decision,
         "threshold": threshold,
+        "mc_visual_path": mc_visual_path,
+        "abcde_visual_path": abcde_visual_path,
+        "multiclass_result": multiclass_result,
+        "abcde_result": abcde_res,
     }
 
 
-def run_single_analysis(image: Image.Image, threshold: float, history_state: list[dict] | None):
+
+def create_multiclass_figure(probs: dict, top_class: str, risk_level: str) -> str:
+    fig, ax = plt.subplots(figsize=(8, 5), facecolor="#09111d")
+    ax.set_facecolor="#09111d"
+    
+    names = list(probs.keys())
+    values = [probs[n] * 100 for n in names]
+    
+    # Sort for bar chart
+    sorted_pairs = sorted(zip(values, names), reverse=False)
+    values_s = [v for v, n in sorted_pairs]
+    names_s = [n for v, n in sorted_pairs]
+    
+    colors = [RISK_COLORS.get(RISK_LEVELS[n], "#38bdf8") for n in names_s]
+    bars = ax.barh(names_s, values_s, color=colors, alpha=0.8)
+    
+    for bar in bars:
+        width = bar.get_width()
+        if width > 1:
+            ax.text(width + 1, bar.get_y() + bar.get_height()/2, f'{width:.1f}%', 
+                    va='center', color="#cbd7e6", fontsize=9)
+    
+    ax.set_title(f"Multi-Class Probabilities\nTop: {top_class} ({risk_level})", color="#e8f2ff", fontsize=12, fontweight="bold")
+    ax.spines['left'].set_color('#334155')
+    ax.spines['bottom'].set_color('#334155')
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.tick_params(colors='#94a3b8')
+    ax.set_xlabel("Probability (%)", color="#94a3b8")
+    
+    plt.tight_layout()
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    tmp.close()
+    plt.savefig(tmp.name, dpi=130, bbox_inches="tight", facecolor="#09111d")
+    plt.close(fig)
+    return tmp.name
+
+def create_abcde_visualization_wrapper(pil_resized, abcde_res):
+    import numpy as np
+    from abcde import create_abcde_visualization
+    vis_np = create_abcde_visualization(pil_resized, abcde_res)
+    
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(12, 4), facecolor="#09111d")
+    ax.imshow(vis_np)
+    ax.axis('off')
+    plt.tight_layout()
+    
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    tmp.close()
+    plt.savefig(tmp.name, dpi=130, bbox_inches="tight", facecolor="#09111d")
+    plt.close(fig)
+    return tmp.name
+
+def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run_abcde: bool, history_state: list[dict] | None):
     if image is None:
-        return None, build_placeholder_html(), None, None, empty_history_df(), None, history_state or [], None
+        return None, build_placeholder_html(), None, None, empty_history_df(), None, history_state or [], None, None, None
 
     history_state = list(history_state or [])
-    analysis = analyze_image(image, threshold, "Single Upload")
+    analysis = analyze_image(image, threshold, "Single Upload", use_tta, run_abcde)
     history_state.append(analysis["record"])
     history_csv = write_records_csv(history_state)
 
@@ -557,6 +687,8 @@ def run_single_analysis(image: Image.Image, threshold: float, history_state: lis
         history_csv,
         history_state,
         analysis,
+        analysis["mc_visual_path"],
+        analysis["abcde_visual_path"]
     )
 
 
@@ -1063,6 +1195,9 @@ def build_ui():
                                     height=360,
                                     elem_classes=["upload-box"],
                                 )
+                                with gr.Row():
+                                    use_tta = gr.Checkbox(label="Enable Test-Time Augmentation (TTA)", value=True, info="Boosts accuracy via averaging augmentations")
+                                    run_abcde_chk = gr.Checkbox(label="Run ABCDE Auto-Vision Analysis", value=True)
                                 predict_btn = gr.Button(
                                     "Analyze Image",
                                     variant="primary",
@@ -1169,6 +1304,36 @@ def build_ui():
                                     </div>
                                     """
                                 )
+
+            with gr.Tab("Multi-Class Diagnosis"):
+                with gr.Group(elem_classes=["panel"]):
+                    gr.HTML(
+                        '''
+                        <div class="panel-header">
+                            <h3 class="panel-title">9-Class Probability Distribution</h3>
+                            <p class="panel-subtitle">
+                                The multi-class model estimates probabilities across 9 diagnostic categories.
+                            </p>
+                        </div>
+                        '''
+                    )
+                    with gr.Group(elem_classes=["panel-body"]):
+                        mc_output_img = gr.Image(label="Multi-Class Predictions", interactive=False, elem_classes=["output-box"])
+
+            with gr.Tab("ABCDE Auto-Vision Details"):
+                with gr.Group(elem_classes=["panel"]):
+                    gr.HTML(
+                        '''
+                        <div class="panel-header">
+                            <h3 class="panel-title">ABCDE Dermatological Features</h3>
+                            <p class="panel-subtitle">
+                                Automated lesion segmentation and rule-based computer vision analysis of the classic ABCDE criteria.
+                            </p>
+                        </div>
+                        '''
+                    )
+                    with gr.Group(elem_classes=["panel-body"]):
+                        abcde_output_img = gr.Image(label="ABCDE Analysis Details", interactive=False, elem_classes=["output-box"])
 
             with gr.Tab("Symptom Review"):
                 with gr.Row(equal_height=True):
@@ -1382,7 +1547,7 @@ def build_ui():
 
         predict_btn.click(
             fn=run_single_analysis,
-            inputs=[image_input, threshold, history_state],
+            inputs=[image_input, threshold, use_tta, run_abcde_chk, history_state],
             outputs=[
                 gradcam_out,
                 result_html,
@@ -1392,6 +1557,8 @@ def build_ui():
                 history_csv,
                 history_state,
                 latest_analysis_state,
+                mc_output_img,
+                abcde_output_img
             ],
         )
 

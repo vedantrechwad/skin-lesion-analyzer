@@ -1,0 +1,1762 @@
+image_name,class_label
+ISIC_0028231,squamous cell carcinoma
+ISIC_0029598,squamous cell carcinoma
+ISIC_0026959,pigmented benign keratosis
+ISIC_0000068,nevus
+ISIC_0030275,vascular lesion
+ISIC_0026042,pigmented benign keratosis
+ISIC_0028890,basal cell carcinoma
+ISIC_0026549,squamous cell carcinoma
+ISIC_0026046,pigmented benign keratosis
+ISIC_0000052,nevus
+ISIC_0029851,squamous cell carcinoma
+ISIC_0024489,pigmented benign keratosis
+ISIC_0025911,dermatofibroma
+ISIC_0010407,melanoma
+ISIC_0000445,melanoma
+ISIC_0024564,basal cell carcinoma
+ISIC_0000153,melanoma
+ISIC_0024710,squamous cell carcinoma
+ISIC_0000539,nevus
+ISIC_0025642,pigmented benign keratosis
+ISIC_0027780,pigmented benign keratosis
+ISIC_0025548,pigmented benign keratosis
+ISIC_0026245,pigmented benign keratosis
+ISIC_0000034,nevus
+ISIC_0027057,basal cell carcinoma
+ISIC_0031526,basal cell carcinoma
+ISIC_0000279,melanoma
+ISIC_0028043,pigmented benign keratosis
+ISIC_0000092,nevus
+ISIC_0024709,pigmented benign keratosis
+ISIC_0029919,basal cell carcinoma
+ISIC_0032866,vascular lesion
+ISIC_0010410,melanoma
+ISIC_0031442,basal cell carcinoma
+ISIC_0025710,pigmented benign keratosis
+ISIC_0010080,melanoma
+ISIC_0024814,pigmented benign keratosis
+ISIC_0030177,basal cell carcinoma
+ISIC_0024595,basal cell carcinoma
+ISIC_0026194,actinic keratosis
+ISIC_0025980,dermatofibroma
+ISIC_0000476,nevus
+ISIC_0000414,melanoma
+ISIC_0033413,actinic keratosis
+ISIC_0029930,actinic keratosis
+ISIC_0033031,vascular lesion
+ISIC_0032371,squamous cell carcinoma
+ISIC_0024550,basal cell carcinoma
+ISIC_0031197,vascular lesion
+ISIC_0000520,melanoma
+ISIC_0027884,actinic keratosis
+ISIC_0026378,pigmented benign keratosis
+ISIC_0024890,pigmented benign keratosis
+ISIC_0010397,melanoma
+ISIC_0025321,vascular lesion
+ISIC_0026644,pigmented benign keratosis
+ISIC_0030335,basal cell carcinoma
+ISIC_0010597,melanoma
+ISIC_0026311,pigmented benign keratosis
+ISIC_0028059,basal cell carcinoma
+ISIC_0029052,dermatofibroma
+ISIC_0025076,pigmented benign keratosis
+ISIC_0026444,pigmented benign keratosis
+ISIC_0000095,nevus
+ISIC_0026958,pigmented benign keratosis
+ISIC_0025630,basal cell carcinoma
+ISIC_0027612,pigmented benign keratosis
+ISIC_0010965,melanoma
+ISIC_0000463,melanoma
+ISIC_0028414,pigmented benign keratosis
+ISIC_0027990,pigmented benign keratosis
+ISIC_0000047,nevus
+ISIC_0024431,basal cell carcinoma
+ISIC_0025299,basal cell carcinoma
+ISIC_0029392,basal cell carcinoma
+ISIC_0000351,nevus
+ISIC_0001125,melanoma
+ISIC_0000223,nevus
+ISIC_0000097,nevus
+ISIC_0000176,melanoma
+ISIC_0000552,melanoma
+ISIC_0026992,squamous cell carcinoma
+ISIC_0025906,pigmented benign keratosis
+ISIC_0033000,squamous cell carcinoma
+ISIC_0028739,basal cell carcinoma
+ISIC_0026276,pigmented benign keratosis
+ISIC_0027094,pigmented benign keratosis
+ISIC_0025668,dermatofibroma
+ISIC_0026857,actinic keratosis
+ISIC_0010631,melanoma
+ISIC_0011077,melanoma
+ISIC_0026643,basal cell carcinoma
+ISIC_0026523,pigmented benign keratosis
+ISIC_0030191,squamous cell carcinoma
+ISIC_0027184,squamous cell carcinoma
+ISIC_0026525,actinic keratosis
+ISIC_0027774,basal cell carcinoma
+ISIC_0028607,pigmented benign keratosis
+ISIC_0027831,pigmented benign keratosis
+ISIC_0010993,melanoma
+ISIC_0000524,nevus
+ISIC_0000313,melanoma
+ISIC_0033494,actinic keratosis
+ISIC_0029745,basal cell carcinoma
+ISIC_0025838,pigmented benign keratosis
+ISIC_0030487,squamous cell carcinoma
+ISIC_0031166,basal cell carcinoma
+ISIC_0000495,nevus
+ISIC_0028201,pigmented benign keratosis
+ISIC_0010583,melanoma
+ISIC_0026132,squamous cell carcinoma
+ISIC_0001132,melanoma
+ISIC_0025392,pigmented benign keratosis
+ISIC_0000099,nevus
+ISIC_0029129,basal cell carcinoma
+ISIC_0026539,pigmented benign keratosis
+ISIC_0026473,dermatofibroma
+ISIC_0025985,pigmented benign keratosis
+ISIC_0027159,vascular lesion
+ISIC_0027562,actinic keratosis
+ISIC_0010145,melanoma
+ISIC_0028517,actinic keratosis
+ISIC_0010165,melanoma
+ISIC_0026720,squamous cell carcinoma
+ISIC_0028473,pigmented benign keratosis
+ISIC_0010909,melanoma
+ISIC_0029315,squamous cell carcinoma
+ISIC_0032422,actinic keratosis
+ISIC_0010767,melanoma
+ISIC_0000424,nevus
+ISIC_0010512,actinic keratosis
+ISIC_0011138,melanoma
+ISIC_0028236,pigmented benign keratosis
+ISIC_0000452,nevus
+ISIC_0026831,basal cell carcinoma
+ISIC_0030528,basal cell carcinoma
+ISIC_0027473,basal cell carcinoma
+ISIC_0024673,basal cell carcinoma
+ISIC_0024848,basal cell carcinoma
+ISIC_0027631,basal cell carcinoma
+ISIC_0030242,actinic keratosis
+ISIC_0031719,vascular lesion
+ISIC_0027178,squamous cell carcinoma
+ISIC_0029847,basal cell carcinoma
+ISIC_0010750,melanoma
+ISIC_0029541,squamous cell carcinoma
+ISIC_0030714,squamous cell carcinoma
+ISIC_0025383,basal cell carcinoma
+ISIC_0026409,pigmented benign keratosis
+ISIC_0029638,squamous cell carcinoma
+ISIC_0030491,actinic keratosis
+ISIC_0010049,melanoma
+ISIC_0026351,pigmented benign keratosis
+ISIC_0024925,squamous cell carcinoma
+ISIC_0026693,vascular lesion
+ISIC_0032557,vascular lesion
+ISIC_0000015,nevus
+ISIC_0027781,pigmented benign keratosis
+ISIC_0026477,pigmented benign keratosis
+ISIC_0028628,pigmented benign keratosis
+ISIC_0000006,nevus
+ISIC_0025378,pigmented benign keratosis
+ISIC_0024825,pigmented benign keratosis
+ISIC_0011007,melanoma
+ISIC_0024949,basal cell carcinoma
+ISIC_0031276,vascular lesion
+ISIC_0029025,actinic keratosis
+ISIC_0000143,melanoma
+ISIC_0010067,melanoma
+ISIC_0027141,dermatofibroma
+ISIC_0027279,pigmented benign keratosis
+ISIC_0025302,dermatofibroma
+ISIC_0001154,melanoma
+ISIC_0024408,pigmented benign keratosis
+ISIC_0026467,vascular lesion
+ISIC_0027580,actinic keratosis
+ISIC_0000296,melanoma
+ISIC_0000164,melanoma
+ISIC_0027825,basal cell carcinoma
+ISIC_0027584,pigmented benign keratosis
+ISIC_0030868,basal cell carcinoma
+ISIC_0000359,nevus
+ISIC_0009918,melanoma
+ISIC_0028372,squamous cell carcinoma
+ISIC_0032715,vascular lesion
+ISIC_0011057,melanoma
+ISIC_0026433,basal cell carcinoma
+ISIC_0000430,nevus
+ISIC_0028336,pigmented benign keratosis
+ISIC_0000306,melanoma
+ISIC_0000548,melanoma
+ISIC_0000380,nevus
+ISIC_0000515,nevus
+ISIC_0028076,actinic keratosis
+ISIC_0033705,actinic keratosis
+ISIC_0027563,vascular lesion
+ISIC_0000300,melanoma
+ISIC_0000405,melanoma
+ISIC_0027107,dermatofibroma
+ISIC_0000348,nevus
+ISIC_0001126,melanoma
+ISIC_0024773,pigmented benign keratosis
+ISIC_0026607,pigmented benign keratosis
+ISIC_0029083,basal cell carcinoma
+ISIC_0027344,pigmented benign keratosis
+ISIC_0028651,dermatofibroma
+ISIC_0010468,melanoma
+ISIC_0029602,basal cell carcinoma
+ISIC_0030280,squamous cell carcinoma
+ISIC_0000327,nevus
+ISIC_0029193,basal cell carcinoma
+ISIC_0011593,squamous cell carcinoma
+ISIC_0024498,pigmented benign keratosis
+ISIC_0031901,vascular lesion
+ISIC_0027394,pigmented benign keratosis
+ISIC_0028264,pigmented benign keratosis
+ISIC_0001128,melanoma
+ISIC_0024672,pigmented benign keratosis
+ISIC_0028555,pigmented benign keratosis
+ISIC_0026661,pigmented benign keratosis
+ISIC_0024452,basal cell carcinoma
+ISIC_0025250,vascular lesion
+ISIC_0030579,dermatofibroma
+ISIC_0010432,melanoma
+ISIC_0000010,nevus
+ISIC_0032356,squamous cell carcinoma
+ISIC_0000390,melanoma
+ISIC_0009916,melanoma
+ISIC_0000521,melanoma
+ISIC_0024871,pigmented benign keratosis
+ISIC_0024539,squamous cell carcinoma
+ISIC_0030175,squamous cell carcinoma
+ISIC_0027269,vascular lesion
+ISIC_0031344,dermatofibroma
+ISIC_0000538,nevus
+ISIC_0024880,pigmented benign keratosis
+ISIC_0000147,melanoma
+ISIC_0024332,basal cell carcinoma
+ISIC_0029900,actinic keratosis
+ISIC_0028680,vascular lesion
+ISIC_0025099,pigmented benign keratosis
+ISIC_0027888,vascular lesion
+ISIC_0025331,squamous cell carcinoma
+ISIC_0031823,actinic keratosis
+ISIC_0001114,dermatofibroma
+ISIC_0026729,actinic keratosis
+ISIC_0000467,nevus
+ISIC_0025594,dermatofibroma
+ISIC_0000550,melanoma
+ISIC_0000322,nevus
+ISIC_0025837,pigmented benign keratosis
+ISIC_0025799,pigmented benign keratosis
+ISIC_0027189,basal cell carcinoma
+ISIC_0000292,melanoma
+ISIC_0028104,pigmented benign keratosis
+ISIC_0024787,basal cell carcinoma
+ISIC_0000165,melanoma
+ISIC_0024947,pigmented benign keratosis
+ISIC_0027826,pigmented benign keratosis
+ISIC_0029501,basal cell carcinoma
+ISIC_0029533,squamous cell carcinoma
+ISIC_0027172,actinic keratosis
+ISIC_0025661,pigmented benign keratosis
+ISIC_0026319,squamous cell carcinoma
+ISIC_0026566,pigmented benign keratosis
+ISIC_0010131,melanoma
+ISIC_0000335,nevus
+ISIC_0030825,actinic keratosis
+ISIC_0010719,melanoma
+ISIC_0024982,pigmented benign keratosis
+ISIC_0025856,pigmented benign keratosis
+ISIC_0009897,melanoma
+ISIC_0030844,squamous cell carcinoma
+ISIC_0031062,basal cell carcinoma
+ISIC_0028294,pigmented benign keratosis
+ISIC_0029279,squamous cell carcinoma
+ISIC_0027601,basal cell carcinoma
+ISIC_0026629,dermatofibroma
+ISIC_0024420,pigmented benign keratosis
+ISIC_0028640,pigmented benign keratosis
+ISIC_0030197,basal cell carcinoma
+ISIC_0030463,actinic keratosis
+ISIC_0024666,basal cell carcinoma
+ISIC_0032247,dermatofibroma
+ISIC_0025513,basal cell carcinoma
+ISIC_0000489,nevus
+ISIC_0000035,melanoma
+ISIC_0000267,nevus
+ISIC_0000336,nevus
+ISIC_0010401,melanoma
+ISIC_0025811,squamous cell carcinoma
+ISIC_0028671,basal cell carcinoma
+ISIC_0024445,pigmented benign keratosis
+ISIC_0030011,dermatofibroma
+ISIC_0010423,melanoma
+ISIC_0000483,nevus
+ISIC_0024881,pigmented benign keratosis
+ISIC_0010225,melanoma
+ISIC_0010024,melanoma
+ISIC_0000250,nevus
+ISIC_0009886,melanoma
+ISIC_0025301,basal cell carcinoma
+ISIC_0030339,basal cell carcinoma
+ISIC_0027254,actinic keratosis
+ISIC_0025879,pigmented benign keratosis
+ISIC_0000446,melanoma
+ISIC_0027650,actinic keratosis
+ISIC_0000245,nevus
+ISIC_0027802,actinic keratosis
+ISIC_0027334,actinic keratosis
+ISIC_0027739,pigmented benign keratosis
+ISIC_0000443,nevus
+ISIC_0027983,vascular lesion
+ISIC_0011132,melanoma
+ISIC_0030403,basal cell carcinoma
+ISIC_0010576,melanoma
+ISIC_0000461,nevus
+ISIC_0029130,dermatofibroma
+ISIC_0029201,basal cell carcinoma
+ISIC_0027893,pigmented benign keratosis
+ISIC_0028123,pigmented benign keratosis
+ISIC_0027814,basal cell carcinoma
+ISIC_0000167,melanoma
+ISIC_0029715,squamous cell carcinoma
+ISIC_0025312,pigmented benign keratosis
+ISIC_0026468,actinic keratosis
+ISIC_0028223,pigmented benign keratosis
+ISIC_0026978,basal cell carcinoma
+ISIC_0000314,melanoma
+ISIC_0031228,actinic keratosis
+ISIC_0028381,squamous cell carcinoma
+ISIC_0027760,pigmented benign keratosis
+ISIC_0031470,basal cell carcinoma
+ISIC_0028568,basal cell carcinoma
+ISIC_0032014,squamous cell carcinoma
+ISIC_0000041,nevus
+ISIC_0029192,basal cell carcinoma
+ISIC_0000246,nevus
+ISIC_0027788,basal cell carcinoma
+ISIC_0000338,nevus
+ISIC_0024504,basal cell carcinoma
+ISIC_0000549,melanoma
+ISIC_0010156,melanoma
+ISIC_0028790,dermatofibroma
+ISIC_0000527,nevus
+ISIC_0000382,nevus
+ISIC_0031243,basal cell carcinoma
+ISIC_0000366,nevus
+ISIC_0029309,actinic keratosis
+ISIC_0029781,actinic keratosis
+ISIC_0032277,squamous cell carcinoma
+ISIC_0028490,pigmented benign keratosis
+ISIC_0000383,nevus
+ISIC_0027706,pigmented benign keratosis
+ISIC_0026702,actinic keratosis
+ISIC_0029805,basal cell carcinoma
+ISIC_0000462,melanoma
+ISIC_0024515,basal cell carcinoma
+ISIC_0026301,pigmented benign keratosis
+ISIC_0000471,nevus
+ISIC_0000036,melanoma
+ISIC_0010878,melanoma
+ISIC_0010482,melanoma
+ISIC_0000007,nevus
+ISIC_0011118,seborrheic keratosis
+ISIC_0025286,pigmented benign keratosis
+ISIC_0024477,pigmented benign keratosis
+ISIC_0027038,basal cell carcinoma
+ISIC_0010663,melanoma
+ISIC_0010872,melanoma
+ISIC_0031211,squamous cell carcinoma
+ISIC_0011163,melanoma
+ISIC_0027820,pigmented benign keratosis
+ISIC_0010757,melanoma
+ISIC_0026453,basal cell carcinoma
+ISIC_0026861,pigmented benign keratosis
+ISIC_0009950,melanoma
+ISIC_0032404,actinic keratosis
+ISIC_0025825,actinic keratosis
+ISIC_0029655,basal cell carcinoma
+ISIC_0027367,pigmented benign keratosis
+ISIC_0027665,vascular lesion
+ISIC_0027531,basal cell carcinoma
+ISIC_0010653,melanoma
+ISIC_0025411,squamous cell carcinoma
+ISIC_0001135,melanoma
+ISIC_0030010,basal cell carcinoma
+ISIC_0024829,basal cell carcinoma
+ISIC_0027037,pigmented benign keratosis
+ISIC_0000042,nevus
+ISIC_0024994,dermatofibroma
+ISIC_0024743,basal cell carcinoma
+ISIC_0000168,melanoma
+ISIC_0031335,actinic keratosis
+ISIC_0010714,melanoma
+ISIC_0029362,squamous cell carcinoma
+ISIC_0024381,pigmented benign keratosis
+ISIC_0010925,melanoma
+ISIC_0033458,vascular lesion
+ISIC_0025519,pigmented benign keratosis
+ISIC_0000497,nevus
+ISIC_0000174,melanoma
+ISIC_0029043,squamous cell carcinoma
+ISIC_0011052,melanoma
+ISIC_0028095,basal cell carcinoma
+ISIC_0028084,basal cell carcinoma
+ISIC_0025780,actinic keratosis
+ISIC_0027770,pigmented benign keratosis
+ISIC_0031245,basal cell carcinoma
+ISIC_0001112,melanoma
+ISIC_0030594,basal cell carcinoma
+ISIC_0025069,squamous cell carcinoma
+ISIC_0025948,squamous cell carcinoma
+ISIC_0026100,squamous cell carcinoma
+ISIC_0027506,squamous cell carcinoma
+ISIC_0024411,basal cell carcinoma
+ISIC_0031609,actinic keratosis
+ISIC_0000063,nevus
+ISIC_0028583,basal cell carcinoma
+ISIC_0009898,melanoma
+ISIC_0010295,melanoma
+ISIC_0027239,pigmented benign keratosis
+ISIC_0000437,nevus
+ISIC_0027903,vascular lesion
+ISIC_0030690,basal cell carcinoma
+ISIC_0024338,pigmented benign keratosis
+ISIC_0025599,vascular lesion
+ISIC_0024432,basal cell carcinoma
+ISIC_0032057,vascular lesion
+ISIC_0026350,basal cell carcinoma
+ISIC_0025804,pigmented benign keratosis
+ISIC_0029500,actinic keratosis
+ISIC_0028611,pigmented benign keratosis
+ISIC_0000320,nevus
+ISIC_0000357,nevus
+ISIC_0024450,squamous cell carcinoma
+ISIC_0024795,basal cell carcinoma
+ISIC_0026275,basal cell carcinoma
+ISIC_0024643,pigmented benign keratosis
+ISIC_0025387,pigmented benign keratosis
+ISIC_0024470,actinic keratosis
+ISIC_0011161,melanoma
+ISIC_0000440,melanoma
+ISIC_0026206,squamous cell carcinoma
+ISIC_0024883,pigmented benign keratosis
+ISIC_0000001,nevus
+ISIC_0027767,squamous cell carcinoma
+ISIC_0000406,melanoma
+ISIC_0031318,basal cell carcinoma
+ISIC_0026835,pigmented benign keratosis
+ISIC_0010210,melanoma
+ISIC_0025932,basal cell carcinoma
+ISIC_0028644,squamous cell carcinoma
+ISIC_0027047,squamous cell carcinoma
+ISIC_0010792,melanoma
+ISIC_0030387,squamous cell carcinoma
+ISIC_0031450,basal cell carcinoma
+ISIC_0024782,pigmented benign keratosis
+ISIC_0000152,melanoma
+ISIC_0024553,dermatofibroma
+ISIC_0024443,basal cell carcinoma
+ISIC_0028209,pigmented benign keratosis
+ISIC_0031270,vascular lesion
+ISIC_0025578,vascular lesion
+ISIC_0025515,pigmented benign keratosis
+ISIC_0000450,melanoma
+ISIC_0001121,melanoma
+ISIC_0027989,pigmented benign keratosis
+ISIC_0026631,pigmented benign keratosis
+ISIC_0024707,actinic keratosis
+ISIC_0030375,squamous cell carcinoma
+ISIC_0025957,actinic keratosis
+ISIC_0032154,squamous cell carcinoma
+ISIC_0033358,actinic keratosis
+ISIC_0024632,basal cell carcinoma
+ISIC_0010749,melanoma
+ISIC_0025627,pigmented benign keratosis
+ISIC_0027996,pigmented benign keratosis
+ISIC_0011139,melanoma
+ISIC_0025510,pigmented benign keratosis
+ISIC_0027042,pigmented benign keratosis
+ISIC_0026015,pigmented benign keratosis
+ISIC_0025362,basal cell carcinoma
+ISIC_0031065,vascular lesion
+ISIC_0010469,melanoma
+ISIC_0027675,basal cell carcinoma
+ISIC_0031154,basal cell carcinoma
+ISIC_0001124,melanoma
+ISIC_0024984,basal cell carcinoma
+ISIC_0026040,actinic keratosis
+ISIC_0029460,actinic keratosis
+ISIC_0026324,basal cell carcinoma
+ISIC_0026265,pigmented benign keratosis
+ISIC_0000542,nevus
+ISIC_0027969,pigmented benign keratosis
+ISIC_0026343,basal cell carcinoma
+ISIC_0024468,actinic keratosis
+ISIC_0028158,squamous cell carcinoma
+ISIC_0010034,melanoma
+ISIC_0010783,melanoma
+ISIC_0029783,dermatofibroma
+ISIC_0010977,melanoma
+ISIC_0027652,pigmented benign keratosis
+ISIC_0010217,melanoma
+ISIC_0032076,vascular lesion
+ISIC_0025752,basal cell carcinoma
+ISIC_0010890,melanoma
+ISIC_0029713,actinic keratosis
+ISIC_0024997,pigmented benign keratosis
+ISIC_0031520,basal cell carcinoma
+ISIC_0029915,actinic keratosis
+ISIC_0000014,nevus
+ISIC_0025350,squamous cell carcinoma
+ISIC_0000422,nevus
+ISIC_0024623,pigmented benign keratosis
+ISIC_0026496,basal cell carcinoma
+ISIC_0000231,nevus
+ISIC_0025711,basal cell carcinoma
+ISIC_0028323,basal cell carcinoma
+ISIC_0028124,pigmented benign keratosis
+ISIC_0030138,basal cell carcinoma
+ISIC_0027819,basal cell carcinoma
+ISIC_0027093,basal cell carcinoma
+ISIC_0000490,nevus
+ISIC_0000150,melanoma
+ISIC_0027713,pigmented benign keratosis
+ISIC_0011140,melanoma
+ISIC_0030094,basal cell carcinoma
+ISIC_0000444,melanoma
+ISIC_0026867,pigmented benign keratosis
+ISIC_0000060,nevus
+ISIC_0030526,basal cell carcinoma
+ISIC_0030341,squamous cell carcinoma
+ISIC_0030442,dermatofibroma
+ISIC_0025716,pigmented benign keratosis
+ISIC_0025368,actinic keratosis
+ISIC_0031648,vascular lesion
+ISIC_0026790,pigmented benign keratosis
+ISIC_0033349,vascular lesion
+ISIC_0026135,pigmented benign keratosis
+ISIC_0025033,pigmented benign keratosis
+ISIC_0029041,actinic keratosis
+ISIC_0031040,actinic keratosis
+ISIC_0029779,basal cell carcinoma
+ISIC_0000295,melanoma
+ISIC_0000219,nevus
+ISIC_0000379,nevus
+ISIC_0000470,nevus
+ISIC_0025793,basal cell carcinoma
+ISIC_0010546,melanoma
+ISIC_0010898,melanoma
+ISIC_0026249,pigmented benign keratosis
+ISIC_0025029,squamous cell carcinoma
+ISIC_0011125,melanoma
+ISIC_0025644,basal cell carcinoma
+ISIC_0027135,basal cell carcinoma
+ISIC_0010796,melanoma
+ISIC_0026794,pigmented benign keratosis
+ISIC_0033810,dermatofibroma
+ISIC_0027354,pigmented benign keratosis
+ISIC_0024845,dermatofibroma
+ISIC_0026907,pigmented benign keratosis
+ISIC_0030297,squamous cell carcinoma
+ISIC_0009993,melanoma
+ISIC_0010396,melanoma
+ISIC_0025434,pigmented benign keratosis
+ISIC_0000237,nevus
+ISIC_0000009,nevus
+ISIC_0029323,basal cell carcinoma
+ISIC_0026709,actinic keratosis
+ISIC_0025485,pigmented benign keratosis
+ISIC_0028197,basal cell carcinoma
+ISIC_0000517,melanoma
+ISIC_0024457,basal cell carcinoma
+ISIC_0025743,pigmented benign keratosis
+ISIC_0010321,melanoma
+ISIC_0000451,nevus
+ISIC_0026230,basal cell carcinoma
+ISIC_0030015,dermatofibroma
+ISIC_0034135,dermatofibroma
+ISIC_0027876,dermatofibroma
+ISIC_0025388,pigmented benign keratosis
+ISIC_0031271,dermatofibroma
+ISIC_0031431,squamous cell carcinoma
+ISIC_0028404,pigmented benign keratosis
+ISIC_0024774,pigmented benign keratosis
+ISIC_0028728,basal cell carcinoma
+ISIC_0000149,melanoma
+ISIC_0027027,pigmented benign keratosis
+ISIC_0000080,nevus
+ISIC_0031292,actinic keratosis
+ISIC_0025771,dermatofibroma
+ISIC_0027058,basal cell carcinoma
+ISIC_0025431,pigmented benign keratosis
+ISIC_0000526,melanoma
+ISIC_0011039,melanoma
+ISIC_0027275,pigmented benign keratosis
+ISIC_0026422,pigmented benign keratosis
+ISIC_0025885,pigmented benign keratosis
+ISIC_0024358,pigmented benign keratosis
+ISIC_0000349,nevus
+ISIC_0028035,basal cell carcinoma
+ISIC_0027708,squamous cell carcinoma
+ISIC_0029082,basal cell carcinoma
+ISIC_0030021,dermatofibroma
+ISIC_0025819,pigmented benign keratosis
+ISIC_0024748,pigmented benign keratosis
+ISIC_0027536,actinic keratosis
+ISIC_0010629,melanoma
+ISIC_0010652,melanoma
+ISIC_0030555,dermatofibroma
+ISIC_0000528,nevus
+ISIC_0000059,nevus
+ISIC_0030782,basal cell carcinoma
+ISIC_0010302,melanoma
+ISIC_0000371,nevus
+ISIC_0028693,basal cell carcinoma
+ISIC_0010470,melanoma
+ISIC_0026248,pigmented benign keratosis
+ISIC_0000315,nevus
+ISIC_0029831,basal cell carcinoma
+ISIC_0025032,pigmented benign keratosis
+ISIC_0010081,melanoma
+ISIC_0011040,melanoma
+ISIC_0000456,nevus
+ISIC_0030954,basal cell carcinoma
+ISIC_0024463,squamous cell carcinoma
+ISIC_0025276,pigmented benign keratosis
+ISIC_0033991,vascular lesion
+ISIC_0033230,vascular lesion
+ISIC_0024646,actinic keratosis
+ISIC_0031407,basal cell carcinoma
+ISIC_0025467,basal cell carcinoma
+ISIC_0026871,pigmented benign keratosis
+ISIC_0000222,nevus
+ISIC_0001152,melanoma
+ISIC_0010245,melanoma
+ISIC_0000088,nevus
+ISIC_0026717,pigmented benign keratosis
+ISIC_0000531,melanoma
+ISIC_0010171,melanoma
+ISIC_0000141,melanoma
+ISIC_0028224,squamous cell carcinoma
+ISIC_0029331,basal cell carcinoma
+ISIC_0028388,pigmented benign keratosis
+ISIC_0000038,nevus
+ISIC_0031743,squamous cell carcinoma
+ISIC_0025086,pigmented benign keratosis
+ISIC_0025083,pigmented benign keratosis
+ISIC_0025075,pigmented benign keratosis
+ISIC_0025937,pigmented benign keratosis
+ISIC_0025867,pigmented benign keratosis
+ISIC_0026060,pigmented benign keratosis
+ISIC_0032890,vascular lesion
+ISIC_0030344,actinic keratosis
+ISIC_0026395,basal cell carcinoma
+ISIC_0026704,pigmented benign keratosis
+ISIC_0027680,pigmented benign keratosis
+ISIC_0028389,pigmented benign keratosis
+ISIC_0026961,pigmented benign keratosis
+ISIC_0000000,nevus
+ISIC_0000519,melanoma
+ISIC_0027967,pigmented benign keratosis
+ISIC_0000058,nevus
+ISIC_0026872,squamous cell carcinoma
+ISIC_0028486,basal cell carcinoma
+ISIC_0000504,nevus
+ISIC_0029462,squamous cell carcinoma
+ISIC_0025068,pigmented benign keratosis
+ISIC_0029840,actinic keratosis
+ISIC_0011193,melanoma
+ISIC_0026606,pigmented benign keratosis
+ISIC_0031272,basal cell carcinoma
+ISIC_0000151,melanoma
+ISIC_0027850,pigmented benign keratosis
+ISIC_0000241,nevus
+ISIC_0025712,squamous cell carcinoma
+ISIC_0010707,melanoma
+ISIC_0000238,nevus
+ISIC_0025699,pigmented benign keratosis
+ISIC_0000449,nevus
+ISIC_0024403,basal cell carcinoma
+ISIC_0000227,nevus
+ISIC_0010175,melanoma
+ISIC_0024626,pigmented benign keratosis
+ISIC_0000226,nevus
+ISIC_0027544,basal cell carcinoma
+ISIC_0000027,nevus
+ISIC_0010979,melanoma
+ISIC_0025030,pigmented benign keratosis
+ISIC_0027991,pigmented benign keratosis
+ISIC_0001151,melanoma
+ISIC_0027470,pigmented benign keratosis
+ISIC_0000369,nevus
+ISIC_0000477,nevus
+ISIC_0010876,melanoma
+ISIC_0011187,melanoma
+ISIC_0000342,nevus
+ISIC_0031400,basal cell carcinoma
+ISIC_0028448,pigmented benign keratosis
+ISIC_0027759,basal cell carcinoma
+ISIC_0025656,pigmented benign keratosis
+ISIC_0027722,basal cell carcinoma
+ISIC_0026637,pigmented benign keratosis
+ISIC_0025130,squamous cell carcinoma
+ISIC_0026016,pigmented benign keratosis
+ISIC_0030767,basal cell carcinoma
+ISIC_0010054,melanoma
+ISIC_0025526,pigmented benign keratosis
+ISIC_0031927,squamous cell carcinoma
+ISIC_0000011,nevus
+ISIC_0025063,pigmented benign keratosis
+ISIC_0000273,nevus
+ISIC_0000299,melanoma
+ISIC_0010772,melanoma
+ISIC_0028593,pigmented benign keratosis
+ISIC_0031056,basal cell carcinoma
+ISIC_0010359,melanoma
+ISIC_0011045,melanoma
+ISIC_0033608,vascular lesion
+ISIC_0028990,actinic keratosis
+ISIC_0024370,vascular lesion
+ISIC_0028587,pigmented benign keratosis
+ISIC_0027374,pigmented benign keratosis
+ISIC_0029644,basal cell carcinoma
+ISIC_0032745,vascular lesion
+ISIC_0027790,vascular lesion
+ISIC_0000506,nevus
+ISIC_0010119,melanoma
+ISIC_0000361,nevus
+ISIC_0001148,melanoma
+ISIC_0010587,melanoma
+ISIC_0000084,nevus
+ISIC_0029889,vascular lesion
+ISIC_0027649,pigmented benign keratosis
+ISIC_0027937,vascular lesion
+ISIC_0025577,squamous cell carcinoma
+ISIC_0027915,basal cell carcinoma
+ISIC_0000403,nevus
+ISIC_0024799,basal cell carcinoma
+ISIC_0024426,pigmented benign keratosis
+ISIC_0000319,nevus
+ISIC_0029133,actinic keratosis
+ISIC_0000148,melanoma
+ISIC_0025103,pigmented benign keratosis
+ISIC_0027084,squamous cell carcinoma
+ISIC_0027747,pigmented benign keratosis
+ISIC_0024612,pigmented benign keratosis
+ISIC_0026442,basal cell carcinoma
+ISIC_0010728,melanoma
+ISIC_0031257,dermatofibroma
+ISIC_0000032,nevus
+ISIC_0000426,nevus
+ISIC_0028656,pigmented benign keratosis
+ISIC_0031940,squamous cell carcinoma
+ISIC_0010978,melanoma
+ISIC_0028558,actinic keratosis
+ISIC_0000291,melanoma
+ISIC_0000412,melanoma
+ISIC_0000364,nevus
+ISIC_0025940,basal cell carcinoma
+ISIC_0024786,pigmented benign keratosis
+ISIC_0027648,dermatofibroma
+ISIC_0026855,basal cell carcinoma
+ISIC_0000410,melanoma
+ISIC_0030321,dermatofibroma
+ISIC_0030514,basal cell carcinoma
+ISIC_0025144,basal cell carcinoma
+ISIC_0028623,pigmented benign keratosis
+ISIC_0025066,pigmented benign keratosis
+ISIC_0024318,dermatofibroma
+ISIC_0000053,nevus
+ISIC_0026203,squamous cell carcinoma
+ISIC_0028200,pigmented benign keratosis
+ISIC_0029123,basal cell carcinoma
+ISIC_0026068,vascular lesion
+ISIC_0029059,squamous cell carcinoma
+ISIC_0010392,melanoma
+ISIC_0030230,basal cell carcinoma
+ISIC_0026970,basal cell carcinoma
+ISIC_0027858,basal cell carcinoma
+ISIC_0026263,pigmented benign keratosis
+ISIC_0024711,pigmented benign keratosis
+ISIC_0011433,dermatofibroma
+ISIC_0011042,melanoma
+ISIC_0029967,dermatofibroma
+ISIC_0000469,melanoma
+ISIC_0000508,nevus
+ISIC_0031381,actinic keratosis
+ISIC_0000266,nevus
+ISIC_0028132,squamous cell carcinoma
+ISIC_0027295,pigmented benign keratosis
+ISIC_0028370,actinic keratosis
+ISIC_0000341,nevus
+ISIC_0029549,squamous cell carcinoma
+ISIC_0010388,melanoma
+ISIC_0031531,basal cell carcinoma
+ISIC_0029489,basal cell carcinoma
+ISIC_0024740,pigmented benign keratosis
+ISIC_0000407,nevus
+ISIC_0001108,melanoma
+ISIC_0000397,nevus
+ISIC_0000399,melanoma
+ISIC_0027142,pigmented benign keratosis
+ISIC_0030730,actinic keratosis
+ISIC_0025425,vascular lesion
+ISIC_0000499,nevus
+ISIC_0026940,basal cell carcinoma
+ISIC_0029391,basal cell carcinoma
+ISIC_0000172,melanoma
+ISIC_0026466,squamous cell carcinoma
+ISIC_0000094,nevus
+ISIC_0025803,actinic keratosis
+ISIC_0000343,nevus
+ISIC_0031201,vascular lesion
+ISIC_0025971,basal cell carcinoma
+ISIC_0028449,pigmented benign keratosis
+ISIC_0028335,squamous cell carcinoma
+ISIC_0024422,pigmented benign keratosis
+ISIC_0011137,melanoma
+ISIC_0011410,dermatofibroma
+ISIC_0025826,basal cell carcinoma
+ISIC_0030893,basal cell carcinoma
+ISIC_0000488,nevus
+ISIC_0000378,nevus
+ISIC_0025196,squamous cell carcinoma
+ISIC_0025102,basal cell carcinoma
+ISIC_0000054,melanoma
+ISIC_0028146,vascular lesion
+ISIC_0029268,squamous cell carcinoma
+ISIC_0025953,actinic keratosis
+ISIC_0011099,melanoma
+ISIC_0000033,nevus
+ISIC_0027982,pigmented benign keratosis
+ISIC_0025650,basal cell carcinoma
+ISIC_0010140,melanoma
+ISIC_0029524,basal cell carcinoma
+ISIC_0026254,dermatofibroma
+ISIC_0010611,melanoma
+ISIC_0029811,squamous cell carcinoma
+ISIC_0024312,pigmented benign keratosis
+ISIC_0032409,vascular lesion
+ISIC_0026092,vascular lesion
+ISIC_0029857,basal cell carcinoma
+ISIC_0030104,vascular lesion
+ISIC_0031457,dermatofibroma
+ISIC_0030249,basal cell carcinoma
+ISIC_0025612,vascular lesion
+ISIC_0000158,melanoma
+ISIC_0027428,pigmented benign keratosis
+ISIC_0027801,pigmented benign keratosis
+ISIC_0000280,melanoma
+ISIC_0026335,pigmented benign keratosis
+ISIC_0010364,melanoma
+ISIC_0010730,melanoma
+ISIC_0033860,dermatofibroma
+ISIC_0026737,pigmented benign keratosis
+ISIC_0027162,pigmented benign keratosis
+ISIC_0000417,melanoma
+ISIC_0010280,melanoma
+ISIC_0030070,vascular lesion
+ISIC_0010029,melanoma
+ISIC_0027626,dermatofibroma
+ISIC_0029053,basal cell carcinoma
+ISIC_0030964,basal cell carcinoma
+ISIC_0028050,basal cell carcinoma
+ISIC_0000493,nevus
+ISIC_0000502,melanoma
+ISIC_0026656,basal cell carcinoma
+ISIC_0028652,basal cell carcinoma
+ISIC_0031057,basal cell carcinoma
+ISIC_0025330,pigmented benign keratosis
+ISIC_0027559,pigmented benign keratosis
+ISIC_0010630,melanoma
+ISIC_0027320,pigmented benign keratosis
+ISIC_0000169,melanoma
+ISIC_0028237,pigmented benign keratosis
+ISIC_0026981,squamous cell carcinoma
+ISIC_0010579,melanoma
+ISIC_0031012,squamous cell carcinoma
+ISIC_0032775,vascular lesion
+ISIC_0027175,basal cell carcinoma
+ISIC_0000381,nevus
+ISIC_0026107,pigmented benign keratosis
+ISIC_0000064,nevus
+ISIC_0026388,squamous cell carcinoma
+ISIC_0010785,melanoma
+ISIC_0000312,melanoma
+ISIC_0028094,pigmented benign keratosis
+ISIC_0026842,pigmented benign keratosis
+ISIC_0000432,melanoma
+ISIC_0026213,basal cell carcinoma
+ISIC_0027771,pigmented benign keratosis
+ISIC_0010559,melanoma
+ISIC_0025374,pigmented benign keratosis
+ISIC_0030036,actinic keratosis
+ISIC_0027192,pigmented benign keratosis
+ISIC_0026365,pigmented benign keratosis
+ISIC_0025700,basal cell carcinoma
+ISIC_0000360,nevus
+ISIC_0026848,actinic keratosis
+ISIC_0000386,nevus
+ISIC_0029856,basal cell carcinoma
+ISIC_0026675,pigmented benign keratosis
+ISIC_0000416,nevus
+ISIC_0030145,basal cell carcinoma
+ISIC_0000055,nevus
+ISIC_0000522,melanoma
+ISIC_0024495,pigmented benign keratosis
+ISIC_0030991,squamous cell carcinoma
+ISIC_0027735,pigmented benign keratosis
+ISIC_0010319,melanoma
+ISIC_0010608,melanoma
+ISIC_0010106,melanoma
+ISIC_0026493,pigmented benign keratosis
+ISIC_0024324,pigmented benign keratosis
+ISIC_0024850,pigmented benign keratosis
+ISIC_0027332,pigmented benign keratosis
+ISIC_0026090,basal cell carcinoma
+ISIC_0026988,basal cell carcinoma
+ISIC_0025326,pigmented benign keratosis
+ISIC_0025199,pigmented benign keratosis
+ISIC_0025805,pigmented benign keratosis
+ISIC_0000427,nevus
+ISIC_0028820,actinic keratosis
+ISIC_0024453,pigmented benign keratosis
+ISIC_0001127,melanoma
+ISIC_0010288,melanoma
+ISIC_0029917,basal cell carcinoma
+ISIC_0027068,pigmented benign keratosis
+ISIC_0030314,basal cell carcinoma
+ISIC_0010271,melanoma
+ISIC_0026439,basal cell carcinoma
+ISIC_0000480,nevus
+ISIC_0010313,melanoma
+ISIC_0000439,nevus
+ISIC_0000263,nevus
+ISIC_0030076,squamous cell carcinoma
+ISIC_0027998,basal cell carcinoma
+ISIC_0009905,melanoma
+ISIC_0026967,pigmented benign keratosis
+ISIC_0031578,squamous cell carcinoma
+ISIC_0025136,pigmented benign keratosis
+ISIC_0030986,squamous cell carcinoma
+ISIC_0026104,pigmented benign keratosis
+ISIC_0029177,dermatofibroma
+ISIC_0027451,pigmented benign keratosis
+ISIC_0028350,basal cell carcinoma
+ISIC_0025465,pigmented benign keratosis
+ISIC_0026783,pigmented benign keratosis
+ISIC_0028020,pigmented benign keratosis
+ISIC_0001116,melanoma
+ISIC_0031443,dermatofibroma
+ISIC_0000018,nevus
+ISIC_0027546,basal cell carcinoma
+ISIC_0028815,basal cell carcinoma
+ISIC_0025373,dermatofibroma
+ISIC_0027754,pigmented benign keratosis
+ISIC_0010137,melanoma
+ISIC_0000505,nevus
+ISIC_0000484,melanoma
+ISIC_0024575,squamous cell carcinoma
+ISIC_0010564,melanoma
+ISIC_0000523,nevus
+ISIC_0000079,nevus
+ISIC_0030827,squamous cell carcinoma
+ISIC_0030953,squamous cell carcinoma
+ISIC_0024867,vascular lesion
+ISIC_0027744,basal cell carcinoma
+ISIC_0012079,squamous cell carcinoma
+ISIC_0026787,pigmented benign keratosis
+ISIC_0001143,melanoma
+ISIC_0010322,melanoma
+ISIC_0024634,basal cell carcinoma
+ISIC_0025873,vascular lesion
+ISIC_0010441,melanoma
+ISIC_0011865,dermatofibroma
+ISIC_0025992,actinic keratosis
+ISIC_0000387,nevus
+ISIC_0026446,pigmented benign keratosis
+ISIC_0027577,squamous cell carcinoma
+ISIC_0031552,basal cell carcinoma
+ISIC_0029514,vascular lesion
+ISIC_0010770,melanoma
+ISIC_0000228,nevus
+ISIC_0026192,basal cell carcinoma
+ISIC_0010790,melanoma
+ISIC_0000232,nevus
+ISIC_0033866,actinic keratosis
+ISIC_0000020,nevus
+ISIC_0011030,melanoma
+ISIC_0000325,nevus
+ISIC_0011013,melanoma
+ISIC_0010834,melanoma
+ISIC_0010415,melanoma
+ISIC_0010174,melanoma
+ISIC_0010094,melanoma
+ISIC_0027167,pigmented benign keratosis
+ISIC_0000240,nevus
+ISIC_0000468,nevus
+ISIC_0027865,basal cell carcinoma
+ISIC_0000066,nevus
+ISIC_0010812,melanoma
+ISIC_0010016,melanoma
+ISIC_0026634,pigmented benign keratosis
+ISIC_0000225,nevus
+ISIC_0000305,melanoma
+ISIC_0026532,pigmented benign keratosis
+ISIC_0026511,pigmented benign keratosis
+ISIC_0027478,basal cell carcinoma
+ISIC_0000057,nevus
+ISIC_0027044,dermatofibroma
+ISIC_0027950,actinic keratosis
+ISIC_0027437,pigmented benign keratosis
+ISIC_0010358,melanoma
+ISIC_0025777,pigmented benign keratosis
+ISIC_0029352,basal cell carcinoma
+ISIC_0000339,nevus
+ISIC_0027677,basal cell carcinoma
+ISIC_0000459,melanoma
+ISIC_0009960,melanoma
+ISIC_0029404,vascular lesion
+ISIC_0031198,squamous cell carcinoma
+ISIC_0031827,dermatofibroma
+ISIC_0033005,dermatofibroma
+ISIC_0033762,vascular lesion
+ISIC_0028254,pigmented benign keratosis
+ISIC_0025292,pigmented benign keratosis
+ISIC_0010746,melanoma
+ISIC_0000358,nevus
+ISIC_0010803,melanoma
+ISIC_0033554,dermatofibroma
+ISIC_0026262,pigmented benign keratosis
+ISIC_0031929,squamous cell carcinoma
+ISIC_0010385,melanoma
+ISIC_0024948,actinic keratosis
+ISIC_0024448,basal cell carcinoma
+ISIC_0026471,dermatofibroma
+ISIC_0010209,melanoma
+ISIC_0028155,basal cell carcinoma
+ISIC_0010791,melanoma
+ISIC_0027629,basal cell carcinoma
+ISIC_0001137,melanoma
+ISIC_0010240,melanoma
+ISIC_0010789,melanoma
+ISIC_0027355,pigmented benign keratosis
+ISIC_0000465,nevus
+ISIC_0026905,actinic keratosis
+ISIC_0028232,squamous cell carcinoma
+ISIC_0000353,nevus
+ISIC_0000220,nevus
+ISIC_0032545,vascular lesion
+ISIC_0010551,melanoma
+ISIC_0000455,nevus
+ISIC_0001103,melanoma
+ISIC_0010485,melanoma
+ISIC_0000482,melanoma
+ISIC_0025810,pigmented benign keratosis
+ISIC_0028309,pigmented benign keratosis
+ISIC_0027454,pigmented benign keratosis
+ISIC_0031140,basal cell carcinoma
+ISIC_0028147,basal cell carcinoma
+ISIC_0000093,nevus
+ISIC_0030778,basal cell carcinoma
+ISIC_0011112,melanoma
+ISIC_0027388,pigmented benign keratosis
+ISIC_0029680,basal cell carcinoma
+ISIC_0028941,actinic keratosis
+ISIC_0000408,nevus
+ISIC_0029573,squamous cell carcinoma
+ISIC_0029466,basal cell carcinoma
+ISIC_0010402,melanoma
+ISIC_0010690,melanoma
+ISIC_0026528,basal cell carcinoma
+ISIC_0010862,melanoma
+ISIC_0025249,vascular lesion
+ISIC_0029891,dermatofibroma
+ISIC_0024654,actinic keratosis
+ISIC_0000025,nevus
+ISIC_0026765,actinic keratosis
+ISIC_0024547,pigmented benign keratosis
+ISIC_0010737,melanoma
+ISIC_0010394,melanoma
+ISIC_0031103,vascular lesion
+ISIC_0000256,nevus
+ISIC_0010478,melanoma
+ISIC_0028079,basal cell carcinoma
+ISIC_0027216,dermatofibroma
+ISIC_0028121,pigmented benign keratosis
+ISIC_0000507,nevus
+ISIC_0030586,actinic keratosis
+ISIC_0011174,melanoma
+ISIC_0009868,melanoma
+ISIC_0026118,basal cell carcinoma
+ISIC_0027875,pigmented benign keratosis
+ISIC_0027522,vascular lesion
+ISIC_0028542,basal cell carcinoma
+ISIC_0024843,squamous cell carcinoma
+ISIC_0027856,vascular lesion
+ISIC_0000332,nevus
+ISIC_0027370,pigmented benign keratosis
+ISIC_0032947,squamous cell carcinoma
+ISIC_0027139,pigmented benign keratosis
+ISIC_0024396,dermatofibroma
+ISIC_0027525,basal cell carcinoma
+ISIC_0010011,melanoma
+ISIC_0024345,basal cell carcinoma
+ISIC_0027004,basal cell carcinoma
+ISIC_0000423,nevus
+ISIC_0000235,nevus
+ISIC_0025696,squamous cell carcinoma
+ISIC_0029610,squamous cell carcinoma
+ISIC_0024461,basal cell carcinoma
+ISIC_0031413,basal cell carcinoma
+ISIC_0000388,nevus
+ISIC_0011677,dermatofibroma
+ISIC_0025046,basal cell carcinoma
+ISIC_0000391,nevus
+ISIC_0028331,pigmented benign keratosis
+ISIC_0000487,melanoma
+ISIC_0027905,pigmented benign keratosis
+ISIC_0024418,squamous cell carcinoma
+ISIC_0029747,basal cell carcinoma
+ISIC_0000492,nevus
+ISIC_0030746,basal cell carcinoma
+ISIC_0000031,melanoma
+ISIC_0010799,melanoma
+ISIC_0000394,melanoma
+ISIC_0024331,basal cell carcinoma
+ISIC_0000389,nevus
+ISIC_0011031,melanoma
+ISIC_0028238,basal cell carcinoma
+ISIC_0028316,basal cell carcinoma
+ISIC_0000544,nevus
+ISIC_0026416,pigmented benign keratosis
+ISIC_0030821,squamous cell carcinoma
+ISIC_0000496,nevus
+ISIC_0000089,nevus
+ISIC_0009908,melanoma
+ISIC_0010278,melanoma
+ISIC_0027953,pigmented benign keratosis
+ISIC_0034214,vascular lesion
+ISIC_0024981,pigmented benign keratosis
+ISIC_0000294,melanoma
+ISIC_0010299,melanoma
+ISIC_0010417,melanoma
+ISIC_0010648,melanoma
+ISIC_0025471,squamous cell carcinoma
+ISIC_0000457,nevus
+ISIC_0010355,melanoma
+ISIC_0000441,melanoma
+ISIC_0029899,basal cell carcinoma
+ISIC_0025509,basal cell carcinoma
+ISIC_0010782,melanoma
+ISIC_0000475,nevus
+ISIC_0031119,squamous cell carcinoma
+ISIC_0031430,actinic keratosis
+ISIC_0027527,pigmented benign keratosis
+ISIC_0000396,nevus
+ISIC_0010056,melanoma
+ISIC_0010366,melanoma
+ISIC_0024770,pigmented benign keratosis
+ISIC_0010852,melanoma
+ISIC_0025790,squamous cell carcinoma
+ISIC_0000425,nevus
+ISIC_0028885,vascular lesion
+ISIC_0025986,pigmented benign keratosis
+ISIC_0025703,pigmented benign keratosis
+ISIC_0010000,melanoma
+ISIC_0026849,pigmented benign keratosis
+ISIC_0029035,basal cell carcinoma
+ISIC_0028314,actinic keratosis
+ISIC_0033536,squamous cell carcinoma
+ISIC_0033811,actinic keratosis
+ISIC_0024761,pigmented benign keratosis
+ISIC_0000271,nevus
+ISIC_0000518,melanoma
+ISIC_0028964,basal cell carcinoma
+ISIC_0025601,basal cell carcinoma
+ISIC_0026574,basal cell carcinoma
+ISIC_0025038,pigmented benign keratosis
+ISIC_0000008,nevus
+ISIC_0000385,nevus
+ISIC_0025982,pigmented benign keratosis
+ISIC_0025903,dermatofibroma
+ISIC_0010207,melanoma
+ISIC_0026280,pigmented benign keratosis
+ISIC_0000004,melanoma
+ISIC_0024471,pigmented benign keratosis
+ISIC_0026327,squamous cell carcinoma
+ISIC_0028411,pigmented benign keratosis
+ISIC_0027064,pigmented benign keratosis
+ISIC_0000551,melanoma
+ISIC_0033675,dermatofibroma
+ISIC_0026843,pigmented benign keratosis
+ISIC_0000309,melanoma
+ISIC_0000460,nevus
+ISIC_0027795,squamous cell carcinoma
+ISIC_0000333,nevus
+ISIC_0011136,melanoma
+ISIC_0000447,nevus
+ISIC_0028497,pigmented benign keratosis
+ISIC_0028180,pigmented benign keratosis
+ISIC_0030794,squamous cell carcinoma
+ISIC_0030352,basal cell carcinoma
+ISIC_0031346,vascular lesion
+ISIC_0030408,actinic keratosis
+ISIC_0026902,basal cell carcinoma
+ISIC_0026526,pigmented benign keratosis
+ISIC_0026668,basal cell carcinoma
+ISIC_0025623,pigmented benign keratosis
+ISIC_0000301,melanoma
+ISIC_0000326,nevus
+ISIC_0027859,pigmented benign keratosis
+ISIC_0000472,nevus
+ISIC_0032349,squamous cell carcinoma
+ISIC_0031286,squamous cell carcinoma
+ISIC_0010235,melanoma
+ISIC_0010860,melanoma
+ISIC_0010486,melanoma
+ISIC_0026576,pigmented benign keratosis
+ISIC_0025575,pigmented benign keratosis
+ISIC_0027335,pigmented benign keratosis
+ISIC_0000065,nevus
+ISIC_0000479,nevus
+ISIC_0029220,basal cell carcinoma
+ISIC_0000453,nevus
+ISIC_0026626,actinic keratosis
+ISIC_0026845,basal cell carcinoma
+ISIC_0026441,pigmented benign keratosis
+ISIC_0000534,nevus
+ISIC_0032455,squamous cell carcinoma
+ISIC_0034196,vascular lesion
+ISIC_0027966,basal cell carcinoma
+ISIC_0029486,vascular lesion
+ISIC_0000159,melanoma
+ISIC_0024662,vascular lesion
+ISIC_0027218,pigmented benign keratosis
+ISIC_0029020,basal cell carcinoma
+ISIC_0010379,melanoma
+ISIC_0027303,squamous cell carcinoma
+ISIC_0033565,vascular lesion
+ISIC_0027385,vascular lesion
+ISIC_0000473,nevus
+ISIC_0011185,melanoma
+ISIC_0000436,nevus
+ISIC_0000073,nevus
+ISIC_0027281,basal cell carcinoma
+ISIC_0011751,squamous cell carcinoma
+ISIC_0009913,melanoma
+ISIC_0028980,basal cell carcinoma
+ISIC_0000308,melanoma
+ISIC_0031063,basal cell carcinoma
+ISIC_0025719,pigmented benign keratosis
+ISIC_0000003,nevus
+ISIC_0033695,dermatofibroma
+ISIC_0026070,pigmented benign keratosis
+ISIC_0026593,basal cell carcinoma
+ISIC_0000546,nevus
+ISIC_0000037,nevus
+ISIC_0000334,nevus
+ISIC_0026282,basal cell carcinoma
+ISIC_0027392,pigmented benign keratosis
+ISIC_0026769,pigmented benign keratosis
+ISIC_0027488,dermatofibroma
+ISIC_0000374,nevus
+ISIC_0025767,pigmented benign keratosis
+ISIC_0031738,squamous cell carcinoma
+ISIC_0028233,pigmented benign keratosis
+ISIC_0031659,squamous cell carcinoma
+ISIC_0026286,pigmented benign keratosis
+ISIC_0028080,pigmented benign keratosis
+ISIC_0025260,basal cell carcinoma
+ISIC_0031041,basal cell carcinoma
+ISIC_0026219,pigmented benign keratosis
+ISIC_0025389,pigmented benign keratosis
+ISIC_0026556,pigmented benign keratosis
+ISIC_0030644,basal cell carcinoma
+ISIC_0000244,nevus
+ISIC_0030349,basal cell carcinoma
+ISIC_0026171,actinic keratosis
+ISIC_0031993,actinic keratosis
+ISIC_0028650,pigmented benign keratosis
+ISIC_0024329,squamous cell carcinoma
+ISIC_0000160,melanoma
+ISIC_0027008,dermatofibroma
+ISIC_0024572,basal cell carcinoma
+ISIC_0027745,dermatofibroma
+ISIC_0000258,nevus
+ISIC_0029827,actinic keratosis
+ISIC_0024833,basal cell carcinoma
+ISIC_0025419,pigmented benign keratosis
+ISIC_0025874,pigmented benign keratosis
+ISIC_0024579,squamous cell carcinoma
+ISIC_0000171,melanoma
+ISIC_0025507,pigmented benign keratosis
+ISIC_0000030,melanoma
+ISIC_0010766,melanoma
+ISIC_0026865,basal cell carcinoma
+ISIC_0033844,vascular lesion
+ISIC_0025264,squamous cell carcinoma
+ISIC_0025322,basal cell carcinoma
+ISIC_0031298,basal cell carcinoma
+ISIC_0029669,basal cell carcinoma
+ISIC_0024946,squamous cell carcinoma
+ISIC_0010537,melanoma
+ISIC_0033869,squamous cell carcinoma
+ISIC_0025677,vascular lesion
+ISIC_0027681,pigmented benign keratosis
+ISIC_0000270,nevus
+ISIC_0026044,pigmented benign keratosis
+ISIC_0000494,nevus
+ISIC_0025180,pigmented benign keratosis
+ISIC_0001138,melanoma
+ISIC_0024475,vascular lesion
+ISIC_0030655,actinic keratosis
+ISIC_0027973,pigmented benign keratosis
+ISIC_0024590,basal cell carcinoma
+ISIC_0000337,nevus
+ISIC_0028106,basal cell carcinoma
+ISIC_0010466,melanoma
+ISIC_0025654,pigmented benign keratosis
+ISIC_0033092,vascular lesion
+ISIC_0024436,basal cell carcinoma
+ISIC_0010797,melanoma
+ISIC_0000023,nevus
+ISIC_0026524,pigmented benign keratosis
+ISIC_0027529,squamous cell carcinoma
+ISIC_0030757,dermatofibroma
+ISIC_0027017,pigmented benign keratosis
+ISIC_0000082,nevus
+ISIC_0028973,basal cell carcinoma
+ISIC_0010548,melanoma
+ISIC_0000304,melanoma
+ISIC_0011130,melanoma
+ISIC_0026393,vascular lesion
+ISIC_0000096,nevus
+ISIC_0028120,pigmented benign keratosis
+ISIC_0028662,pigmented benign keratosis
+ISIC_0029820,basal cell carcinoma
+ISIC_0029742,vascular lesion
+ISIC_0000415,melanoma
+ISIC_0027371,basal cell carcinoma
+ISIC_0025178,squamous cell carcinoma
+ISIC_0000413,melanoma
+ISIC_0029371,squamous cell carcinoma
+ISIC_0029412,basal cell carcinoma
+ISIC_0011166,melanoma
+ISIC_0031692,squamous cell carcinoma
+ISIC_0025818,basal cell carcinoma
+ISIC_0027256,vascular lesion
+ISIC_0031513,basal cell carcinoma
+ISIC_0028122,basal cell carcinoma
+ISIC_0010810,melanoma
+ISIC_0000392,nevus
+ISIC_0000474,nevus
+ISIC_0030665,dermatofibroma
+ISIC_0000409,nevus
+ISIC_0027090,basal cell carcinoma
+ISIC_0032867,vascular lesion
+ISIC_0029647,basal cell carcinoma
+ISIC_0026803,pigmented benign keratosis
+ISIC_0024494,pigmented benign keratosis
+ISIC_0025883,pigmented benign keratosis
+ISIC_0031171,basal cell carcinoma
+ISIC_0000330,nevus
+ISIC_0027595,basal cell carcinoma
+ISIC_0025707,vascular lesion
+ISIC_0010143,melanoma
+ISIC_0030813,basal cell carcinoma
+ISIC_0001118,melanoma
+ISIC_0024915,pigmented benign keratosis
+ISIC_0031309,dermatofibroma
+ISIC_0001157,melanoma
+ISIC_0000513,melanoma
+ISIC_0011478,dermatofibroma
+ISIC_0028479,pigmented benign keratosis
+ISIC_0024562,squamous cell carcinoma
+ISIC_0028346,dermatofibroma
+ISIC_0028258,pigmented benign keratosis
+ISIC_0026154,basal cell carcinoma
+ISIC_0028308,pigmented benign keratosis
+ISIC_0028937,basal cell carcinoma
+ISIC_0028818,basal cell carcinoma
+ISIC_0000478,nevus
+ISIC_0031215,vascular lesion
+ISIC_0027337,basal cell carcinoma
+ISIC_0031874,squamous cell carcinoma
+ISIC_0025040,pigmented benign keratosis
+ISIC_0026553,pigmented benign keratosis
+ISIC_0001102,melanoma
+ISIC_0000328,nevus
+ISIC_0024382,pigmented benign keratosis
+ISIC_0024771,actinic keratosis
+ISIC_0027719,squamous cell carcinoma
+ISIC_0000373,nevus
+ISIC_0032270,vascular lesion
+ISIC_0027294,squamous cell carcinoma
+ISIC_0031191,squamous cell carcinoma
+ISIC_0000434,melanoma
+ISIC_0026336,vascular lesion
+ISIC_0026984,actinic keratosis
+ISIC_0000081,nevus
+ISIC_0025557,basal cell carcinoma
+ISIC_0000393,melanoma
+ISIC_0033591,vascular lesion
+ISIC_0010555,melanoma
+ISIC_0001119,melanoma
+ISIC_0010863,melanoma
+ISIC_0025131,pigmented benign keratosis
+ISIC_0000553,melanoma
+ISIC_0029263,basal cell carcinoma
+ISIC_0025529,pigmented benign keratosis
+ISIC_0000362,nevus
+ISIC_0025157,pigmented benign keratosis
+ISIC_0028393,actinic keratosis
+ISIC_0000278,melanoma
+ISIC_0029860,squamous cell carcinoma
+ISIC_0028570,basal cell carcinoma
+ISIC_0033817,vascular lesion
+ISIC_0027526,basal cell carcinoma
+ISIC_0026443,pigmented benign keratosis
+ISIC_0029210,actinic keratosis
+ISIC_0031175,basal cell carcinoma
+ISIC_0026716,basal cell carcinoma
+ISIC_0000288,melanoma
+ISIC_0030737,basal cell carcinoma
+ISIC_0024909,pigmented benign keratosis
+ISIC_0028190,actinic keratosis
+ISIC_0032614,vascular lesion
+ISIC_0024635,pigmented benign keratosis
+ISIC_0031706,vascular lesion
+ISIC_0026522,squamous cell carcinoma
+ISIC_0011128,melanoma
+ISIC_0000404,melanoma
+ISIC_0024505,pigmented benign keratosis
+ISIC_0011095,melanoma
+ISIC_0030766,basal cell carcinoma
+ISIC_0028687,basal cell carcinoma
+ISIC_0010400,melanoma
+ISIC_0028858,basal cell carcinoma
+ISIC_0024747,vascular lesion
+ISIC_0029248,dermatofibroma
+ISIC_0000229,nevus
+ISIC_0033626,dermatofibroma
+ISIC_0032329,squamous cell carcinoma
+ISIC_0030803,squamous cell carcinoma
+ISIC_0029337,basal cell carcinoma
+ISIC_0026337,basal cell carcinoma
+ISIC_0024676,pigmented benign keratosis
+ISIC_0025504,dermatofibroma
+ISIC_0025244,vascular lesion
+ISIC_0027120,basal cell carcinoma
+ISIC_0000540,nevus
+ISIC_0033151,actinic keratosis
+ISIC_0000083,nevus
+ISIC_0025753,pigmented benign keratosis
+ISIC_0030770,vascular lesion
+ISIC_0032839,vascular lesion
+ISIC_0000395,melanoma
+ISIC_0029342,basal cell carcinoma
+ISIC_0028994,basal cell carcinoma
+ISIC_0026798,basal cell carcinoma
+ISIC_0024971,pigmented benign keratosis
+ISIC_0010596,melanoma
+ISIC_0000049,melanoma
+ISIC_0029962,dermatofibroma
+ISIC_0000532,nevus
+ISIC_0029439,vascular lesion
+ISIC_0030452,basal cell carcinoma
+ISIC_0010809,melanoma
+ISIC_0029567,squamous cell carcinoma
+ISIC_0000466,melanoma
+ISIC_0000356,nevus
+ISIC_0024581,pigmented benign keratosis
+ISIC_0033847,dermatofibroma
+ISIC_0031489,basal cell carcinoma
+ISIC_0001130,dermatofibroma
+ISIC_0025928,pigmented benign keratosis
+ISIC_0024409,pigmented benign keratosis
+ISIC_0010413,melanoma
+ISIC_0026069,pigmented benign keratosis
+ISIC_0024758,pigmented benign keratosis
+ISIC_0029659,actinic keratosis
+ISIC_0000142,melanoma
+ISIC_0027916,pigmented benign keratosis
+ISIC_0010729,melanoma
+ISIC_0010754,melanoma
+ISIC_0030800,basal cell carcinoma
+ISIC_0000340,nevus
+ISIC_0033158,vascular lesion
+ISIC_0000355,nevus
+ISIC_0028168,basal cell carcinoma
+ISIC_0025454,pigmented benign keratosis
+ISIC_0026590,pigmented benign keratosis
+ISIC_0024923,squamous cell carcinoma
+ISIC_0027435,pigmented benign keratosis
+ISIC_0030133,actinic keratosis
+ISIC_0000087,nevus
+ISIC_0029973,dermatofibroma
+ISIC_0028511,pigmented benign keratosis
+ISIC_0000556,nevus
+ISIC_0025567,pigmented benign keratosis
+ISIC_0010380,melanoma
+ISIC_0030712,basal cell carcinoma
+ISIC_0011169,melanoma
+ISIC_0031225,basal cell carcinoma
+ISIC_0000026,melanoma
+ISIC_0025637,squamous cell carcinoma
+ISIC_0000370,nevus
+ISIC_0025089,squamous cell carcinoma
+ISIC_0026417,dermatofibroma
+ISIC_0010265,melanoma
+ISIC_0028163,vascular lesion
+ISIC_0029877,vascular lesion
+ISIC_0027433,basal cell carcinoma
+ISIC_0027447,actinic keratosis
+ISIC_0000428,melanoma
+ISIC_0026766,basal cell carcinoma
+ISIC_0033891,dermatofibroma
+ISIC_0000259,nevus
+ISIC_0000173,melanoma
+ISIC_0000533,melanoma
+ISIC_0032199,actinic keratosis
+ISIC_0025031,basal cell carcinoma
+ISIC_0026411,squamous cell carcinoma
+ISIC_0028646,pigmented benign keratosis
+ISIC_0000354,nevus
+ISIC_0010655,melanoma
+ISIC_0000344,nevus
+ISIC_0000375,nevus
+ISIC_0000061,nevus
+ISIC_0026744,pigmented benign keratosis
+ISIC_0031358,dermatofibroma
+ISIC_0026139,pigmented benign keratosis
+ISIC_0000377,nevus
+ISIC_0000433,nevus
+ISIC_0025197,vascular lesion
+ISIC_0000067,nevus
+ISIC_0026923,pigmented benign keratosis
+ISIC_0026349,vascular lesion
+ISIC_0026074,basal cell carcinoma
+ISIC_0026163,vascular lesion
+ISIC_0029372,basal cell carcinoma
+ISIC_0026846,pigmented benign keratosis
+ISIC_0010476,melanoma
+ISIC_0032206,actinic keratosis
+ISIC_0024897,basal cell carcinoma
+ISIC_0028376,pigmented benign keratosis
+ISIC_0000302,melanoma
+ISIC_0029951,basal cell carcinoma
+ISIC_0011158,melanoma
+ISIC_0025975,basal cell carcinoma
+ISIC_0027509,pigmented benign keratosis
+ISIC_0032238,squamous cell carcinoma
+ISIC_0000376,nevus
+ISIC_0028457,basal cell carcinoma
+ISIC_0030283,vascular lesion
+ISIC_0001140,melanoma
+ISIC_0026775,pigmented benign keratosis
+ISIC_0024454,basal cell carcinoma
+ISIC_0026876,vascular lesion
+ISIC_0011726,squamous cell carcinoma
+ISIC_0000512,nevus
+ISIC_0000525,nevus
+ISIC_0000367,nevus
+ISIC_0030659,basal cell carcinoma
+ISIC_0024708,pigmented benign keratosis
+ISIC_0026893,pigmented benign keratosis
+ISIC_0027025,pigmented benign keratosis
+ISIC_0024383,pigmented benign keratosis
+ISIC_0010778,melanoma
+ISIC_0010039,melanoma
+ISIC_0031506,actinic keratosis
+ISIC_0025628,vascular lesion
+ISIC_0025466,pigmented benign keratosis
+ISIC_0027668,actinic keratosis
+ISIC_0025223,dermatofibroma
+ISIC_0031284,basal cell carcinoma
+ISIC_0024772,pigmented benign keratosis
+ISIC_0027960,pigmented benign keratosis
+ISIC_0024904,vascular lesion
+ISIC_0028085,basal cell carcinoma
+ISIC_0029067,squamous cell carcinoma
+ISIC_0025554,pigmented benign keratosis
+ISIC_0031597,basal cell carcinoma
+ISIC_0026492,squamous cell carcinoma
+ISIC_0011126,seborrheic keratosis
+ISIC_0027018,pigmented benign keratosis
+ISIC_0028343,pigmented benign keratosis
+ISIC_0027419,pigmented benign keratosis
+ISIC_0010164,melanoma
+ISIC_0032138,dermatofibroma
+ISIC_0026456,vascular lesion
+ISIC_0010580,melanoma
+ISIC_0024375,vascular lesion
+ISIC_0027851,basal cell carcinoma
+ISIC_0030096,basal cell carcinoma
+ISIC_0010723,melanoma
+ISIC_0030181,basal cell carcinoma
+ISIC_0031429,dermatofibroma
+ISIC_0031950,vascular lesion
+ISIC_0010527,melanoma
+ISIC_0026083,squamous cell carcinoma
+ISIC_0029002,squamous cell carcinoma
+ISIC_0027613,dermatofibroma
+ISIC_0000400,melanoma
+ISIC_0000085,nevus
+ISIC_0027326,pigmented benign keratosis
+ISIC_0010808,melanoma
+ISIC_0031735,dermatofibroma
+ISIC_0000091,nevus
+ISIC_0025576,basal cell carcinoma
+ISIC_0024943,pigmented benign keratosis
+ISIC_0026713,vascular lesion
+ISIC_0024582,basal cell carcinoma
+ISIC_0031351,basal cell carcinoma
+ISIC_0029564,basal cell carcinoma
+ISIC_0026530,pigmented benign keratosis
+ISIC_0032397,squamous cell carcinoma
+ISIC_0000298,melanoma
+ISIC_0026941,pigmented benign keratosis
+ISIC_0011056,melanoma
+ISIC_0026968,basal cell carcinoma
+ISIC_0025005,pigmented benign keratosis
+ISIC_0028556,basal cell carcinoma
+ISIC_0028795,squamous cell carcinoma
+ISIC_0009955,melanoma
+ISIC_0000442,nevus
+ISIC_0027154,pigmented benign keratosis
+ISIC_0010360,melanoma
+ISIC_0000346,nevus
+ISIC_0000236,nevus
+ISIC_0030142,actinic keratosis
+ISIC_0000022,melanoma
+ISIC_0010534,melanoma
+ISIC_0032642,dermatofibroma
+ISIC_0000002,melanoma
+ISIC_0029974,basal cell carcinoma
+ISIC_0028495,basal cell carcinoma
+ISIC_0000485,nevus
+ISIC_0027608,pigmented benign keratosis
+ISIC_0029545,basal cell carcinoma
+ISIC_0025182,squamous cell carcinoma
+ISIC_0025622,dermatofibroma
+ISIC_0032203,squamous cell carcinoma
+ISIC_0026947,pigmented benign keratosis
+ISIC_0025924,vascular lesion
+ISIC_0025470,pigmented benign keratosis
+ISIC_0028814,basal cell carcinoma
+ISIC_0025247,squamous cell carcinoma
+ISIC_0025691,basal cell carcinoma
+ISIC_0026316,pigmented benign keratosis
+ISIC_0009934,melanoma
+ISIC_0026490,vascular lesion
+ISIC_0026142,pigmented benign keratosis
+ISIC_0010503,melanoma
+ISIC_0026277,pigmented benign keratosis
+ISIC_0028329,basal cell carcinoma
+ISIC_0026085,pigmented benign keratosis
+ISIC_0030877,actinic keratosis
+ISIC_0027609,basal cell carcinoma
+ISIC_0000316,nevus
+ISIC_0028854,actinic keratosis
+ISIC_0031421,squamous cell carcinoma
+ISIC_0027737,pigmented benign keratosis
+ISIC_0010533,melanoma
+ISIC_0028747,basal cell carcinoma
+ISIC_0027291,basal cell carcinoma
+ISIC_0027678,squamous cell carcinoma
+ISIC_0025154,dermatofibroma
+ISIC_0000013,melanoma
+ISIC_0000535,nevus
+ISIC_0030882,vascular lesion
+ISIC_0010610,melanoma
+ISIC_0000547,melanoma
+ISIC_0001110,melanoma
+ISIC_0032932,vascular lesion
+ISIC_0028735,dermatofibroma
+ISIC_0000329,nevus
+ISIC_0027828,pigmented benign keratosis
+ISIC_0010416,melanoma
+ISIC_0031922,actinic keratosis
+ISIC_0028765,basal cell carcinoma
+ISIC_0010050,melanoma
+ISIC_0024511,actinic keratosis
+ISIC_0000501,nevus
+ISIC_0010741,melanoma
+ISIC_0027210,vascular lesion
+ISIC_0028719,basal cell carcinoma
+ISIC_0000402,melanoma
+ISIC_0025915,pigmented benign keratosis
+ISIC_0027270,pigmented benign keratosis
+ISIC_0031955,vascular lesion
+ISIC_0011750,squamous cell carcinoma
+ISIC_0027976,basal cell carcinoma
+ISIC_0000411,melanoma
+ISIC_0026273,pigmented benign keratosis
+ISIC_0000421,nevus
+ISIC_0029578,dermatofibroma
+ISIC_0024706,vascular lesion
+ISIC_0000420,melanoma
+ISIC_0027606,pigmented benign keratosis
+ISIC_0030158,squamous cell carcinoma
+ISIC_0024669,vascular lesion
+ISIC_0029563,squamous cell carcinoma
+ISIC_0024665,basal cell carcinoma
+ISIC_0025366,pigmented benign keratosis
+ISIC_0001105,melanoma
+ISIC_0000498,nevus
+ISIC_0026827,pigmented benign keratosis
+ISIC_0033790,dermatofibroma
+ISIC_0001142,melanoma
+ISIC_0000028,nevus
+ISIC_0000398,melanoma
+ISIC_0000024,nevus
+ISIC_0010982,melanoma
+ISIC_0030591,squamous cell carcinoma
+ISIC_0028525,pigmented benign keratosis
+ISIC_0027957,pigmented benign keratosis
+ISIC_0000529,nevus
+ISIC_0025314,dermatofibroma
+ISIC_0033450,vascular lesion
+ISIC_0000307,melanoma
+ISIC_0027455,pigmented benign keratosis
+ISIC_0010414,melanoma
+ISIC_0011094,melanoma
+ISIC_0009989,melanoma
+ISIC_0000175,melanoma
+ISIC_0027194,pigmented benign keratosis
+ISIC_0025064,pigmented benign keratosis
+ISIC_0029297,dermatofibroma
+ISIC_0032897,squamous cell carcinoma
+ISIC_0010189,melanoma
+ISIC_0000154,melanoma
+ISIC_0030574,basal cell carcinoma
+ISIC_0026614,pigmented benign keratosis
+ISIC_0000510,nevus
+ISIC_0032919,vascular lesion
+ISIC_0000545,nevus
+ISIC_0025824,basal cell carcinoma
+ISIC_0010900,melanoma
+ISIC_0025876,pigmented benign keratosis
+ISIC_0025973,pigmented benign keratosis
+ISIC_0000350,nevus
+ISIC_0025808,squamous cell carcinoma
+ISIC_0000293,melanoma
+ISIC_0000554,melanoma
+ISIC_0027829,actinic keratosis
+ISIC_0032173,squamous cell carcinoma
+ISIC_0024371,pigmented benign keratosis
+ISIC_0000311,melanoma
+ISIC_0024910,pigmented benign keratosis
+ISIC_0000234,nevus
+ISIC_0010784,melanoma
+ISIC_0025530,basal cell carcinoma
+ISIC_0009984,melanoma
+ISIC_0010550,melanoma
+ISIC_0028188,vascular lesion
+ISIC_0032240,vascular lesion
+ISIC_0029755,basal cell carcinoma
