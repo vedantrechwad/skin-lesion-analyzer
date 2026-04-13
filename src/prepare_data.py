@@ -31,6 +31,9 @@ from sklearn.model_selection import train_test_split
 METADATA_URL = "https://isic-challenge-data.s3.amazonaws.com/2020/ISIC_2020_Training_GroundTruth.csv"
 ISIC_API_BASE = "https://api.isic-archive.com/api/v2"
 
+# Classes considered malignant/pre-cancerous for binary mapping
+MALIGNANT_CLASSES = {"melanoma", "basal cell carcinoma", "squamous cell carcinoma", "actinic keratosis"}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # KAGGLE MODE
@@ -150,37 +153,53 @@ def find_train_class_folder_root(kaggle_dir: Path) -> Optional[Path]:
     return None
 
 
-def prepare_from_ham_class_folders(train_root: Path, data_dir, n_images, val_split, seed):
-    """Build binary labels from folder names: melanoma=1, all other classes=0."""
+def _classify_class_folder(folder_name: str) -> int:
+    """Map a class folder name to binary label: malignant/pre-cancerous=1, benign=0."""
+    return 1 if folder_name.lower() in MALIGNANT_CLASSES else 0
+
+
+def _index_class_folders(root: Path) -> pd.DataFrame:
+    """
+    Scan class-name sub-directories under `root` and build a DataFrame with
+    columns: image_name, target, class_label, _src. Uses MALIGNANT_CLASSES for labelling.
+    """
     rows = []
-    for class_dir in sorted(train_root.iterdir()):
+    for class_dir in sorted(root.iterdir()):
         if not class_dir.is_dir():
             continue
-        label = 1 if class_dir.name.lower() == "melanoma" else 0
+        label = _classify_class_folder(class_dir.name)
         for pat in ("*.jpg", "*.jpeg", "*.JPG", "*.JPEG", "*.png", "*.PNG"):
             for img in class_dir.glob(pat):
-                rows.append({"image_name": img.stem, "target": label, "_src": img})
-
+                rows.append({
+                    "image_name": img.stem, 
+                    "target": label, 
+                    "class_label": class_dir.name.lower(),
+                    "_src": img
+                })
     if not rows:
-        raise RuntimeError(f"No images found under {train_root}")
-
+        raise RuntimeError(f"No images found under {root}")
     df = pd.DataFrame(rows)
     n_before = len(df)
-    # Same ISIC id can appear in multiple folders; prefer melanoma (target=1) if conflict
     df = df.sort_values("target", ascending=False).drop_duplicates(subset=["image_name"], keep="first")
     dup = n_before - len(df)
     if dup:
-        print(f"   Resolved {dup} duplicate image_name rows (kept melanoma label when present)")
+        print(f"   Resolved {dup} duplicate image_name rows (kept malignant label when present)")
+    return df
+
+
+def prepare_from_ham_class_folders(train_root: Path, data_dir, n_images, val_split, seed):
+    """Build binary labels from folder names using MALIGNANT_CLASSES mapping."""
+    df = _index_class_folders(train_root)
 
     print(f"   Images indexed: {len(df):,}")
     print(
-        f"   Class distribution:\n{df['target'].value_counts().rename({0: 'Benign (non-melanoma)', 1: 'Malignant (melanoma)'}).to_string()}"
+        f"   Class distribution:\n{df['target'].value_counts().rename({0: 'Benign', 1: 'Malignant'}).to_string()}"
     )
 
     malignant = df[df["target"] == 1]
     benign = df[df["target"] == 0]
     if len(malignant) == 0:
-        raise RuntimeError("No melanoma images — expected a folder named 'melanoma' under Train/.")
+        raise RuntimeError("No malignant images found — expected folders matching MALIGNANT_CLASSES under Train/.")
 
     n_malignant = min(len(malignant), max(1, n_images // 4))
     n_benign = min(len(benign), max(0, n_images - n_malignant))
@@ -193,8 +212,8 @@ def prepare_from_ham_class_folders(train_root: Path, data_dir, n_images, val_spl
     ).sample(frac=1, random_state=seed).reset_index(drop=True)
 
     print(f"\nSampled {len(sampled)} images:")
-    print(f"   Benign (non-melanoma): {n_benign}")
-    print(f"   Malignant (melanoma):  {n_malignant}")
+    print(f"   Benign:    {n_benign}")
+    print(f"   Malignant: {n_malignant}")
 
     out_image_dir = data_dir / "images"
     out_image_dir.mkdir(parents=True, exist_ok=True)
@@ -211,6 +230,144 @@ def prepare_from_ham_class_folders(train_root: Path, data_dir, n_images, val_spl
     print(f"   Copied {copied} new images -> {out_image_dir}")
 
     _split_and_save(sampled[["image_name", "target"]], data_dir, val_split, seed)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ISIC MERGE MODE — merge class-folder dataset with existing data
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _copy_images_to_dir(df: pd.DataFrame, out_image_dir: Path) -> int:
+    """Copy images listed in df (with '_src' column) into out_image_dir. Returns count of new copies."""
+    out_image_dir.mkdir(parents=True, exist_ok=True)
+    copied = 0
+    for _, row in df.iterrows():
+        src = Path(row["_src"])
+        dest = out_image_dir / f"{row['image_name']}.jpg"
+        if not dest.exists():
+            if src.suffix.lower() in (".jpg", ".jpeg", ".jpe"):
+                shutil.copy2(src, dest)
+            else:
+                Image.open(src).convert("RGB").save(dest, quality=95)
+            copied += 1
+    return copied
+
+
+def prepare_and_merge_isic(isic_dir: Path, data_dir: Path, val_split: float, seed: int, generate_multiclass: bool = False):
+    """
+    Merge an ISIC class-folder dataset (Train/ and optionally Test/) with
+    existing data in data_dir.  Uses MALIGNANT_CLASSES for binary labelling.
+    All images are used (no sub-sampling) to maximise training data.
+    If generate_multiclass is True, also generates train_multiclass.csv 
+    and val_multiclass.csv.
+    """
+    print(f"\n{'='*60}")
+    print(f"  ISIC MERGE MODE")
+    print(f"  Source: {isic_dir}")
+    print(f"  Target: {data_dir}")
+    print(f"  Multiclass CSVs: {'Yes' if generate_multiclass else 'No'}")
+    print(f"{'='*60}")
+
+    out_image_dir = data_dir / "images"
+
+    # ── Index new images from Train/ and Test/ ────────────────────────────
+    new_frames = []
+
+    train_root = isic_dir / "Train"
+    if train_root.is_dir():
+        print(f"\nScanning Train folder: {train_root}")
+        train_df = _index_class_folders(train_root)
+        print(f"   Train images indexed: {len(train_df):,}")
+        print(f"   Distribution:\n{train_df['target'].value_counts().rename({0: 'Benign', 1: 'Malignant'}).to_string()}")
+        new_frames.append(train_df)
+
+    test_root = isic_dir / "Test"
+    if test_root.is_dir():
+        print(f"\nScanning Test folder: {test_root}")
+        test_df = _index_class_folders(test_root)
+        print(f"   Test images indexed: {len(test_df):,}")
+        new_frames.append(test_df)
+
+    if not new_frames:
+        raise RuntimeError(f"No Train/ or Test/ folder found under {isic_dir}")
+
+    new_df = pd.concat(new_frames, ignore_index=True)
+    new_df = new_df.sort_values("target", ascending=False).drop_duplicates(subset=["image_name"], keep="first")
+    print(f"\nTotal new images to add: {len(new_df):,}")
+    print(f"   Malignant: {(new_df['target'] == 1).sum()}")
+    print(f"   Benign:    {(new_df['target'] == 0).sum()}")
+
+    # ── Copy new images to data/images/ ───────────────────────────────────
+    copied = _copy_images_to_dir(new_df, out_image_dir)
+    print(f"   Copied {copied} new images -> {out_image_dir}")
+
+    # ── Load existing CSVs and merge ──────────────────────────────────────
+    existing_train_csv = data_dir / "train.csv"
+    existing_val_csv   = data_dir / "val.csv"
+    existing_frames = []
+
+    if existing_train_csv.exists():
+        et = pd.read_csv(existing_train_csv)
+        print(f"\nExisting train.csv: {len(et)} rows")
+        existing_frames.append(et[["image_name", "target"]])
+    if existing_val_csv.exists():
+        ev = pd.read_csv(existing_val_csv)
+        print(f"Existing val.csv:   {len(ev)} rows")
+        existing_frames.append(ev[["image_name", "target"]])
+
+    # Merge: combine existing + new, deduplicate (prefer malignant label)
+    # Be sure to include class_label from new_df when available
+    all_frames = existing_frames + [new_df]
+    merged = pd.concat(all_frames, ignore_index=True)
+    n_before = len(merged)
+    # Sort by class_label first (so non-null comes up), then by target so malignant is kept
+    merged = merged.sort_values(["target", "class_label"], ascending=[False, False], na_position='last')
+    merged = merged.drop_duplicates(subset=["image_name"], keep="first")
+    n_after = len(merged)
+    if n_before != n_after:
+        print(f"   Deduplicated: {n_before} -> {n_after} ({n_before - n_after} overlaps resolved)")
+
+    # Verify images exist on disk
+    merged = merged[merged["image_name"].apply(
+        lambda x: (out_image_dir / f"{x}.jpg").exists()
+    )].reset_index(drop=True)
+    print(f"\nFinal merged dataset: {len(merged)} images")
+    print(f"   Malignant: {(merged['target'] == 1).sum()}")
+    print(f"   Benign:    {(merged['target'] == 0).sum()}")
+
+    # ── Back up old CSVs, then split and save ─────────────────────────────
+    for csv_path in (existing_train_csv, existing_val_csv):
+        if csv_path.exists():
+            backup = csv_path.with_suffix(".csv.bak")
+            shutil.copy2(csv_path, backup)
+            print(f"   Backed up {csv_path.name} -> {backup.name}")
+
+    _split_and_save(merged, data_dir, val_split, seed)
+
+    # ── Optionally split and save for multiclass ────────────────────────────
+    if generate_multiclass and "class_label" in merged.columns:
+        print("\n   Generating multiclass CSVs...")
+        # For existing datasets that didn't have class_label, it will be NaN.
+        # We drop those rows. The multi-class model will only train on the ISIC subset.
+        mc_merged = merged.dropna(subset=["class_label"]).copy()
+        
+        class_counts = mc_merged["class_label"].value_counts()
+        use_stratify = (class_counts >= 2).all()
+        
+        mc_train, mc_val = train_test_split(
+            mc_merged,
+            test_size=val_split,
+            stratify=mc_merged["class_label"] if use_stratify else None,
+            random_state=seed,
+        )
+        
+        mc_train_csv = data_dir / "train_multiclass.csv"
+        mc_val_csv   = data_dir / "val_multiclass.csv"
+        mc_train[["image_name", "class_label"]].to_csv(mc_train_csv, index=False)
+        mc_val[["image_name", "class_label"]].to_csv(mc_val_csv, index=False)
+        
+        print(f"   Multiclass Train: {len(mc_train)} images -> {mc_train_csv}")
+        print(f"   Multiclass Val:   {len(mc_val)} images -> {mc_val_csv}")
+        print(f"   (Excluded {len(merged) - len(mc_merged)} legacy images without class labels)")
 
 
 def find_kaggle_csv_and_images(kaggle_dir: Path) -> Tuple[Path, Path]:
@@ -475,6 +632,7 @@ Examples:
   python prepare_data.py --n-images 5000
   python prepare_data.py --kaggle-dir "C:/Users/you/Downloads/melanoma-classification"
   python prepare_data.py --kaggle-dir /path/to/kaggle --n-images 3000 --data-dir data
+  python prepare_data.py --isic-dir "Skin cancer ISIC The International Skin Imaging Collaboration"
         """,
     )
     parser.add_argument("--n-images",  type=int,   default=5000, help="Total images to use")
@@ -485,11 +643,31 @@ Examples:
         "--kaggle-dir", default=None,
         help="Path to extracted Kaggle ISIC dataset (skips downloading)",
     )
+    parser.add_argument(
+        "--isic-dir", default=None,
+        help="Path to ISIC class-folder dataset (Train/<class>/*.jpg). "
+             "Merges with existing data in --data-dir.",
+    )
+    parser.add_argument(
+        "--multiclass", action="store_true",
+        help="If using --isic-dir, generate train/val_multiclass.csv alongside binary CSVs.",
+    )
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir)
 
-    if args.kaggle_dir:
+    if args.isic_dir:
+        isic_dir = Path(args.isic_dir)
+        if not isic_dir.exists():
+            raise FileNotFoundError(f"--isic-dir not found: {isic_dir}")
+        prepare_and_merge_isic(
+            isic_dir=isic_dir,
+            data_dir=data_dir,
+            val_split=args.val_split,
+            seed=42,
+            generate_multiclass=args.multiclass,
+        )
+    elif args.kaggle_dir:
         kaggle_dir = Path(args.kaggle_dir)
         if not kaggle_dir.exists():
             raise FileNotFoundError(f"--kaggle-dir not found: {kaggle_dir}")
@@ -511,3 +689,4 @@ Examples:
 
     print("\nNext step (from project root):")
     print("   python src/train.py")
+    print("   python src/train_finetune.py   # if fine-tuning from existing model")

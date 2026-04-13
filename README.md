@@ -10,38 +10,63 @@ Built with PyTorch + Gradio. Trained on the **ISIC 2020** dataset.
 
 | Feature | Detail |
 |---|---|
+| **Multi-Class Architecture** | 9-class diagnostic categorization built on EfficientNet-B0 |
+| **ABCDE Computer Vision** | OpenCV analysis of Asymmetry, Border irregularity, Color variation, and relative Diameter |
+| **Test-Time Augmentation** | Toggleable TTA (flips, rotations, jitter) to boost prediction accuracy live |
+| **PDF Reporting Engine** | Professional fpdf2 PDF export containing Grad-CAM maps, probabilities, and patient metadata |
 | **Transfer Learning** | EfficientNet-B0 pretrained on ImageNet, fine-tuned on ISIC |
-| **Two-phase training** | Feature extraction → full fine-tuning for better convergence |
-| **Class imbalance handling** | Weighted sampler + label smoothing |
-| **Data augmentation** | Flips, rotations, color jitter, grayscale dropout |
-| **Grad-CAM** | Visual explanation of model attention |
-| **ROC-AUC evaluation** | Sensitivity, specificity, F1, confusion matrix |
-| **Early stopping** | Prevents overfitting automatically |
-| **Gradio web UI** | Drag-and-drop interface with live Grad-CAM visualization |
+| **Class imbalance handling** | Focal Loss, CutMix/Mixup augmentation, and Weighted Random Sampling |
+| **Grad-CAM** | Visual explanation of model attention overlay |
+| **Gradio Web Console** | Fully segmented UI for Binary, Multi-Class, ABCDE rules, and Symptom Review |
+
+---
+
+## 🏗️ Architecture Upgrades (v2.0)
+
+This system has been upgraded from a simple binary classifier into a comprehensive Multi-Modal Diagnostic toolkit. The following core features have been natively integrated without breaking the baseline classifier:
+
+### 1. 9-Class Multi-Class Architecture
+We rebuilt the data pipeline (`prepare_data.py --multiclass`) to dynamically cluster ISIC data into 9 specific dermatological categories (e.g., _Melanoma, Basal Cell Carcinoma, Nevus_). The new `train_multiclass.py` module utilizes **Focal Loss** to counteract the severe class imbalances typical of medical datasets, ensuring models learn to detect rare, high-risk lesions just as effectively as common benign ones.
+
+### 2. Clinical ABCDE Auto-Vision (`abcde.py`)
+Moving beyond pure deep-learning, the toolkit now includes an algorithmic Computer Vision layer utilizing OpenCV. It independently extracts the lesion via adaptive thresholding and computes the classic ABCDE rules:
+- **Asymmetry**: Horizontal/vertical structural mismatch.
+- **Border**: Compactness and contour irregularity mapping.
+- **Color**: K-Means clustering to detect internal color variation.
+- **Diameter**: Bounding box relative sizing.
+
+### 3. Inference Amplification (TTA & Ensembling)
+To squeeze maximum accuracy out of deployed models, we introduced the `tta.py` module. **Test-Time Augmentation (TTA)** flips and jitters the input image at inference time, running the model multiple times and averaging the probabilities for a noticeably robust prediction.
+
+### 4. PDF Reporting Engine (`report_pdf.py`)
+To mimic clinical workflows, the system dynamically compiles all inference outputs into a downloadable PDF. Built on `fpdf2`, the exporter packages the patient metadata, Grad-CAM attention heatmap, Multi-Class probability bars, and the ABCDE morphological scores into a unified, printable document.
 
 ---
 
 ## 🗂️ Project Structure
 
-```
+```text
 skin-lesion-classifier/
 ├── src/
-│   ├── model.py          ← EfficientNet-B0 model definition
-│   ├── dataset.py        ← Dataset, augmentation, weighted sampler
-│   ├── train.py          ← Full training loop
-│   ├── evaluate.py       ← Metrics, ROC curve, confusion matrix
-│   ├── gradcam.py        ← Grad-CAM explainability
-│   ├── predict.py        ← Single-image prediction CLI
-│   └── app.py            ← Gradio web interface
-├── data/                 ← Dataset lives here (created by prepare_data.py)
-│   ├── images/           ← Downloaded .jpg files
-│   ├── train.csv
-│   └── val.csv
-├── outputs/              ← Trained model + plots saved here
-│   ├── best_model.pth
-│   ├── roc_curve.png
-│   ├── confusion_matrix.png
-│   └── training_history.png
+│   ├── model.py                ← EfficientNet-B0 (Binary & MetadataFusionClassifier)
+│   ├── dataset_multiclass.py   ← 9-Class ISIC formatting + CutMix/Mixup
+│   ├── focal_loss.py           ← Focal Loss module for class imbalance
+│   ├── tta.py                  ← Test-Time Augmentation algorithms
+│   ├── abcde.py                ← OpenCV visual morphological algorithms
+│   ├── ensemble.py             ← Multi-checkpoint prediction averager
+│   ├── report_pdf.py           ← PDF clinical report generator
+│   ├── train_multiclass.py     ← Multi-class specific training loop
+│   ├── train.py                ← Binary baseline training loop
+│   ├── prepare_data.py         ← Universal ISIC/Kaggle dataset constructor
+│   └── app.py                  ← Full Gradio Multi-Tab Web Interface
+├── data/                       ← Generated Datasets
+│   ├── images/  
+│   ├── train.csv / val.csv 
+│   └── train_multiclass.csv / val_multiclass.csv 
+├── outputs/                    ← Trained checkpoints & figures
+│   ├── best_model.pth                  ← Binary weights
+│   ├── best_model_multiclass.pth       ← 9-class weights
+│   └── ...
 ├── requirements.txt
 └── README.md
 ```
@@ -55,24 +80,21 @@ skin-lesion-classifier/
 pip install -r requirements.txt
 ```
 
-### 2. Download & prepare data
+### 2. Prepare Data (Binary & Multi-Class)
+Download and format your folder datasets. By passing `--multiclass`, the engine will output files ready for 9-class deep analysis. 
 ```bash
-# Downloads 5000 images (~2GB) from ISIC 2020
-python src/prepare_data.py --n-images 5000
-
-# For a quick test run (small download):
-python src/prepare_data.py --n-images 500
+python src/prepare_data.py --isic-dir "path/to/isic/directory" --multiclass
 ```
 
-### 3. Train the model
+### 3. Train the models
+Train the binary classification baseline, or train the 9-class system directly using Focal Loss and Progressive Resizing:
 ```bash
-python src/train.py
+# Train Multi-Class Pipeline
+python src/train_multiclass.py --epochs 30 --lr 3e-4
 
-# Quick debug run (small data limit):
-python src/train.py --limit 200 --epochs 3
+# Train Binary System Baseline
+python src/train.py --epochs 20
 ```
-
-Expected output (with 5k images, ~20 epochs):
 - Val AUC: **~0.84–0.88**
 - Sensitivity: ~0.75
 - Specificity: ~0.85
