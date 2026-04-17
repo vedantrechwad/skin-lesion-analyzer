@@ -76,3 +76,61 @@ def load_unet_model(checkpoint_path, device):
     model.load_state_dict(torch.load(checkpoint_path, map_location=device))
     model.eval()
     return model
+
+class TinyBlock(nn.Module):
+    def __init__(self, in_c, out_c):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(in_c, out_c, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_c, out_c, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True)
+        )
+    def forward(self, x): return self.net(x)
+
+class Task2TinyUNet(nn.Module):
+    """
+    A lightweight U-Net optimized for 5-channel attribute segmentation.
+    Outputs: [B, 5, H, W] for the 5 attributes.
+    """
+    def __init__(self):
+        super().__init__()
+        self.d1 = TinyBlock(3, 32)
+        self.d2 = TinyBlock(32, 64)
+        self.d3 = TinyBlock(64, 128)
+        self.pool = nn.MaxPool2d(2)
+        
+        self.u1 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+        self.c1 = TinyBlock(128, 64)
+        
+        self.u2 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)
+        self.c2 = TinyBlock(64, 32)
+        
+        self.out = nn.Conv2d(32, 5, kernel_size=1)
+        
+    def forward(self, x):
+        d1 = self.d1(x)
+        p1 = self.pool(d1)
+        
+        d2 = self.d2(p1)
+        p2 = self.pool(d2)
+        
+        d3 = self.d3(p2)
+        
+        u1 = self.u1(d3)
+        c1 = self.c1(torch.cat([u1, d2], dim=1))
+        
+        u2 = self.u2(c1)
+        c2 = self.c2(torch.cat([u2, d1], dim=1))
+        
+        return self.out(c2)
+
+def load_attribute_unet(checkpoint_path, device):
+    """
+    Load the trained Task 2 Attribute U-Net.
+    """
+    model = Task2TinyUNet().to(device)
+    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    model.eval()
+    return model
+

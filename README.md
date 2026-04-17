@@ -10,8 +10,8 @@ Built with PyTorch + Gradio. Trained on the **ISIC 2020** dataset.
 
 | Feature | Detail |
 |---|---|
-| **Multi-Class Architecture** | 9-class diagnostic categorization built on EfficientNet-B0 |
-| **ABCDE Computer Vision** | OpenCV analysis of Asymmetry, Border irregularity, Color variation, and relative Diameter |
+| **Multi-Class Architecture** | 7-class diagnostic categorization built on EfficientNet-B0 (Task 3) |
+| **Attribute Segmentation** | Multi-channel Deep Learning U-Net extracting 5 dermoscopic morphological attributes (Task 2) |
 | **Test-Time Augmentation** | Toggleable TTA (flips, rotations, jitter) to boost prediction accuracy live |
 | **PDF Reporting Engine** | Professional fpdf2 PDF export containing Grad-CAM maps, probabilities, and patient metadata |
 | **Transfer Learning** | EfficientNet-B0 pretrained on ImageNet, fine-tuned on ISIC |
@@ -25,15 +25,16 @@ Built with PyTorch + Gradio. Trained on the **ISIC 2020** dataset.
 
 This system has been upgraded from a simple binary classifier into a comprehensive Multi-Modal Diagnostic toolkit. The following core features have been natively integrated without breaking the baseline classifier:
 
-### 1. 9-Class Multi-Class Architecture
-We rebuilt the data pipeline (`prepare_data.py --multiclass`) to dynamically cluster ISIC data into 9 specific dermatological categories (e.g., _Melanoma, Basal Cell Carcinoma, Nevus_). The new `train_multiclass.py` module utilizes **Focal Loss** to counteract the severe class imbalances typical of medical datasets, ensuring models learn to detect rare, high-risk lesions just as effectively as common benign ones.
+### 1. 7-Class Multi-Class Architecture (Task 3 Disease Classification)
+We integrated a fine-tuned EfficientNet-B0 directly predicting 7 precise dermatological categories: Melanoma, Melanocytic Nevus, Basal Cell Carcinoma, Actinic Keratosis, Benign Keratosis, Dermatofibroma, and Vascular lesions. It outputs exact probability distributions alongside confidence metrics.
 
-### 2. Clinical ABCDE Auto-Vision (`abcde.py`)
-Moving beyond pure deep-learning, the toolkit now includes an algorithmic Computer Vision layer utilizing OpenCV. It independently extracts the lesion via adaptive thresholding and computes the classic ABCDE rules:
-- **Asymmetry**: Horizontal/vertical structural mismatch.
-- **Border**: Compactness and contour irregularity mapping.
-- **Color**: K-Means clustering to detect internal color variation.
-- **Diameter**: Bounding box relative sizing.
+### 2. Clinical Dermoscopic Attribute Segmentation (Task 2)
+Moving beyond rule-based computer vision (formerly ABCDE), the toolkit now utilizes a lightweight 5-channel Deep Learning **Tiny U-Net**. This extracts and explicitly maps clinically significant spatial features from the lesion:
+- **Globules**
+- **Milia-like cysts**
+- **Negative networks**
+- **Pigment networks**
+- **Streaks**
 
 ### 3. Inference Amplification (TTA & Ensembling)
 To squeeze maximum accuracy out of deployed models, we introduced the `tta.py` module. **Test-Time Augmentation (TTA)** flips and jitters the input image at inference time, running the model multiple times and averaging the probabilities for a noticeably robust prediction.

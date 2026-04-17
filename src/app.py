@@ -17,12 +17,12 @@ from PIL import Image
 
 from dataset import CLASS_NAMES, IMAGE_SIZE, get_transforms
 from gradcam import GradCAM, overlay_heatmap
-from model import SkinLesionClassifier, load_model, load_model_auto
-from dataset_multiclass import MULTICLASS_NAMES, RISK_LEVELS, RISK_COLORS
+from model import SkinLesionClassifier, load_model, load_model_auto, TASK3_CLASSES, TASK3_CLASS_NAMES, TASK3_RISK_LEVELS
+from dataset_multiclass import RISK_LEVELS, RISK_COLORS
 from tta import predict_with_tta
 from abcde import analyze_abcde, create_abcde_visualization
 from report_pdf import generate_report
-from unet import load_unet_model
+from unet import load_unet_model, load_attribute_unet
 
 matplotlib.use("Agg")
 
@@ -33,8 +33,9 @@ IMAGE_DIR = DATA_DIR / "images"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CHECKPOINT = OUTPUTS_DIR / "best_model.pth"
-MULTICLASS_CHECKPOINT = OUTPUTS_DIR / "best_model_multiclass.pth"
+MULTICLASS_CHECKPOINT = PROJECT_ROOT / "task3_best_classifier.pth"
 UNET_CHECKPOINT = OUTPUTS_DIR / "best_unet_model.pth"
+ATTRIBUTE_CHECKPOINT = PROJECT_ROOT / "attribute_unet_best.pth"
 DEFAULT_THRESHOLD = 0.50
 HISTORY_COLUMNS = [
     "Time",
@@ -63,6 +64,14 @@ PLOT_FILES = {
 model = None
 multiclass_model = None
 unet_model = None
+attribute_model = None
+
+def get_attribute_model():
+    global attribute_model
+    if attribute_model is None:
+        if ATTRIBUTE_CHECKPOINT.exists():
+            attribute_model = load_attribute_unet(str(ATTRIBUTE_CHECKPOINT), DEVICE)
+    return attribute_model
 
 def get_unet_model():
     global unet_model
@@ -501,6 +510,13 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
 
     pil_resized = image.resize((IMAGE_SIZE, IMAGE_SIZE)).convert("RGB")
     tensor = transform(pil_resized).to(DEVICE)
+    
+    # Task 2 Preprocessing (192x192 as per training domain)
+    pil_192 = image.resize((192, 192)).convert("RGB")
+    from torchvision.transforms import functional as TF
+    from dataset import MEAN, STD
+    tensor_192 = TF.to_tensor(pil_192)
+    tensor_192 = TF.normalize(tensor_192, MEAN, STD).to(DEVICE)
 
     # ── Grad-CAM ──
     gradcam = GradCAM(model)
@@ -534,7 +550,7 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         "risk_band": risk_band
     }
 
-    # ── Multi-class Inference ──
+    # ── Task 3 Multi-class Inference ──
     mc_model = get_multiclass_model()
     multiclass_result = None
     mc_visual_path = None
@@ -546,22 +562,70 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
                 outputs = mc_model(tensor.unsqueeze(0))
                 mc_probs = torch.softmax(outputs, dim=1)[0].cpu().numpy()
         
+        # If output length does not match TASK3_CLASSES, it might be an old model
+        # Safe fallback
+        class_keys = TASK3_CLASSES if len(mc_probs) == 7 else [f"Class {i}" for i in range(len(mc_probs))]
+        class_names = TASK3_CLASS_NAMES if len(mc_probs) == 7 else class_keys
+
         top_idx = int(np.argmax(mc_probs))
-        top_class = MULTICLASS_NAMES[top_idx]
-        risk_level = RISK_LEVELS[top_class]
+        top_class = class_names[top_idx]
+        risk_level = TASK3_RISK_LEVELS.get(top_class, "Unknown") if len(mc_probs) == 7 else RISK_LEVELS.get(class_keys[top_idx], "Unknown")
         
-        # Build multi-class output dict
-        mc_prob_dict = {name: float(prob) for name, prob in zip(MULTICLASS_NAMES, mc_probs)}
+        mc_prob_dict = {name: float(prob) for name, prob in zip(class_names, mc_probs)}
+        
+        # Diagnostic Logic: Top 3 & Confidence Check
+        sorted_probs = sorted(mc_prob_dict.items(), key=lambda x: x[1], reverse=True)
+        top3 = sorted_probs[:3]
+        top1_val = top3[0][1]
+        top2_val = top3[1][1] if len(top3) > 1 else 0
+        
+        diagnostic_notes = []
+        if top1_val > 0.95:
+            diagnostic_notes.append("Prediction highly confident; model may favor common classes.")
+        if (top1_val - top2_val) < 0.15:
+            diagnostic_notes.append("Prediction uncertain.")
+            
         multiclass_result = {
             "top_class": top_class,
             "risk_level": risk_level,
             "probabilities": mc_prob_dict,
+            "top3": top3,
+            "notes": diagnostic_notes
+        }
+        mc_visual_path = create_multiclass_figure(mc_prob_dict, top_class, risk_level, diagnostic_notes)
+
+    # ── Task 2 Attribute Inference ──
+    attr_model = get_attribute_model()
+    attribute_visual_path = None
+    attributes_detected = {}
+    if attr_model is not None:
+        with torch.no_grad():
+            outputs = attr_model(tensor_192.unsqueeze(0))
+            # Rescale output to the display resized image size
+            import torch.nn.functional as F_nn
+            outputs = F_nn.interpolate(outputs, size=(IMAGE_SIZE, IMAGE_SIZE), mode="bilinear", align_corners=False)
+            attr_sigs = torch.sigmoid(outputs).squeeze(0).cpu().numpy()
+            
+        attr_names = ["Globules", "Milia-like cyst", "Negative network", "Pigment network", "Streaks"]
+        # Calibrated Thresholds
+        thresh_dict = {
+            "Globules": 0.03,
+            "Milia-like cyst": 0.02,
+            "Negative network": 0.02,
+            "Pigment network": 0.05,
+            "Streaks": 0.02
         }
         
-        # Build bar chart for multi-class
-        mc_visual_path = create_multiclass_figure(mc_prob_dict, top_class, risk_level)
+        attr_masks = []
+        for i, name in enumerate(attr_names):
+            t = thresh_dict.get(name, 0.5)
+            mask = (attr_sigs[i] > t).astype(np.float32)
+            attr_masks.append(mask)
+            attributes_detected[name] = bool(np.sum(mask) > 10)
+            
+        attribute_visual_path = create_attribute_visualization(np.array(pil_resized), np.array(attr_masks), attr_names, thresh_dict)
 
-    # ── ABCDE Analysis ──
+    # ── ABCDE Analysis (Legacy Fallback if requested) ──
     abcde_res = None
     abcde_visual_path = None
     if run_abcde:
@@ -621,13 +685,59 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         "threshold": threshold,
         "mc_visual_path": mc_visual_path,
         "abcde_visual_path": abcde_visual_path,
+        "attribute_visual_path": attribute_visual_path,
+        "attributes_detected": attributes_detected,
         "multiclass_result": multiclass_result,
         "abcde_result": abcde_res,
     }
 
 
+def create_attribute_visualization(image_np: np.ndarray, masks: np.ndarray, names: list, thresholds: dict) -> str:
+    """
+    Creates a 2x3 grid showing the original image and the 5 attribute masks.
+    """
+    fig, axes = plt.subplots(2, 3, figsize=(12, 8), facecolor="#09111d")
+    fig.suptitle("Task 2: Dermoscopic Attribute Segmentation", color="#e8f2ff", fontsize=14, fontweight="bold")
+    axes = axes.flatten()
+    
+    # Original image
+    axes[0].imshow(image_np)
+    axes[0].set_title("Original Image", color="#cbd7e6", fontsize=11)
+    axes[0].axis("off")
+    
+    colors = [
+        [0, 255, 0],   # Globules: Green
+        [255, 0, 0],   # Milia: Red
+        [0, 255, 255], # Neg network: Cyan
+        [255, 255, 0], # Pigment: Yellow
+        [255, 0, 255]  # Streaks: Magenta
+    ]
+    
+    for i in range(5):
+        ax = axes[i+1]
+        mask = masks[i]
+        
+        # Create an overlay
+        overlay = image_np.copy()
+        color = np.array(colors[i], dtype=np.uint8)
+        
+        # Apply color tint where mask is 1
+        overlay[mask == 1] = (overlay[mask == 1] * 0.4 + color * 0.6).astype(np.uint8)
+        
+        ax.imshow(overlay)
+        status = "Detected" if np.sum(mask) > 10 else "None"
+        thresh = thresholds.get(names[i], 0.5)
+        ax.set_title(f"{names[i]}\n(T={thresh}, {status})", color="#cbd7e6", fontsize=10)
+        ax.axis("off")
+        
+    plt.tight_layout()
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    tmp.close()
+    plt.savefig(tmp.name, dpi=130, bbox_inches="tight", facecolor="#09111d")
+    plt.close(fig)
+    return tmp.name
 
-def create_multiclass_figure(probs: dict, top_class: str, risk_level: str) -> str:
+def create_multiclass_figure(probs: dict, top_class: str, risk_level: str, notes: list = None) -> str:
     fig, ax = plt.subplots(figsize=(8, 5), facecolor="#09111d")
     ax.set_facecolor="#09111d"
     
@@ -639,7 +749,7 @@ def create_multiclass_figure(probs: dict, top_class: str, risk_level: str) -> st
     values_s = [v for v, n in sorted_pairs]
     names_s = [n for v, n in sorted_pairs]
     
-    colors = [RISK_COLORS.get(RISK_LEVELS[n], "#38bdf8") for n in names_s]
+    colors = [RISK_COLORS.get(TASK3_RISK_LEVELS.get(n, "Unknown"), "#38bdf8") for n in names_s]
     bars = ax.barh(names_s, values_s, color=colors, alpha=0.8)
     
     for bar in bars:
@@ -655,6 +765,15 @@ def create_multiclass_figure(probs: dict, top_class: str, risk_level: str) -> st
     ax.spines['top'].set_visible(False)
     ax.tick_params(colors='#94a3b8')
     ax.set_xlabel("Probability (%)", color="#94a3b8")
+
+    # Add Top 3 summary and Diagnostic notes to the plot
+    sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=True)[:3]
+    summary_text = "Top 3: " + " | ".join([f"{k}: {v*100:.1f}%" for k, v in sorted_probs])
+    fig.text(0.5, 0.02, summary_text, ha='center', color="#cbd7e6", fontsize=9, fontweight='bold')
+    
+    if notes:
+        note_text = "\n".join(notes)
+        fig.text(0.02, 0.95, note_text, color="#fb923c", fontsize=9, fontweight='bold', bbox=dict(facecolor='#1e293b', alpha=0.5, edgecolor='none'))
     
     plt.tight_layout()
     tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
@@ -699,6 +818,7 @@ def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run
         history_state,
         analysis,
         analysis["mc_visual_path"],
+        analysis["attribute_visual_path"],
         analysis["abcde_visual_path"]
     )
 
@@ -1316,20 +1436,35 @@ def build_ui():
                                     """
                                 )
 
-            with gr.Tab("Multi-Class Diagnosis"):
+            with gr.Tab("Task 3 Disease Classification"):
                 with gr.Group(elem_classes=["panel"]):
                     gr.HTML(
                         '''
                         <div class="panel-header">
-                            <h3 class="panel-title">9-Class Probability Distribution</h3>
+                            <h3 class="panel-title">7-Class Disease Probability Distribution</h3>
                             <p class="panel-subtitle">
-                                The multi-class model estimates probabilities across 9 diagnostic categories.
+                                The task 3 multi-class model estimates probabilities across 7 diagnostic categories.
                             </p>
                         </div>
                         '''
                     )
                     with gr.Group(elem_classes=["panel-body"]):
-                        mc_output_img = gr.Image(label="Multi-Class Predictions", interactive=False, elem_classes=["output-box"])
+                        mc_output_img = gr.Image(label="Task 3 Predictions", interactive=False, elem_classes=["output-box"])
+
+            with gr.Tab("Task 2 Dermoscopic Attributes"):
+                with gr.Group(elem_classes=["panel"]):
+                    gr.HTML(
+                        '''
+                        <div class="panel-header">
+                            <h3 class="panel-title">Task 2: Dermatological Attribute Features</h3>
+                            <p class="panel-subtitle">
+                                Deep Learning segmentation of 5 key lesion attributes: Globules, Milia, Networks, and Streaks.
+                            </p>
+                        </div>
+                        '''
+                    )
+                    with gr.Group(elem_classes=["panel-body"]):
+                        attribute_output_img = gr.Image(label="Segmented Attributes", interactive=False, elem_classes=["output-box"])
 
             with gr.Tab("ABCDE Auto-Vision Details"):
                 with gr.Group(elem_classes=["panel"]):
@@ -1569,6 +1704,7 @@ def build_ui():
                 history_state,
                 latest_analysis_state,
                 mc_output_img,
+                attribute_output_img,
                 abcde_output_img
             ],
         )

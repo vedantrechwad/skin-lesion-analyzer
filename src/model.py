@@ -11,6 +11,27 @@ import torch
 import torch.nn as nn
 from torchvision import models
 
+TASK3_CLASSES = ["MEL", "NV", "BCC", "AKIEC", "BKL", "DF", "VASC"]
+TASK3_CLASS_NAMES = [
+    "Melanoma", 
+    "Melanocytic nevus", 
+    "Basal cell carcinoma", 
+    "Actinic keratosis", 
+    "Benign keratosis", 
+    "Dermatofibroma", 
+    "Vascular lesion"
+]
+
+TASK3_RISK_LEVELS = {
+    "Melanoma": "Malignant",
+    "Melanocytic nevus": "Benign",
+    "Basal cell carcinoma": "Malignant",
+    "Actinic keratosis": "Pre-cancerous",
+    "Benign keratosis": "Benign",
+    "Dermatofibroma": "Benign",
+    "Vascular lesion": "Benign"
+}
+
 
 class SkinLesionClassifier(nn.Module):
     """
@@ -141,11 +162,28 @@ class MetadataFusionClassifier(nn.Module):
 def load_model_auto(checkpoint_path: str, device: torch.device):
     """
     Auto-detect model type from checkpoint and load accordingly.
-
-    Returns:
-        (model, model_type, num_classes, class_names)
+    Handles legacy dict format and new bare state_dicts.
     """
     checkpoint = torch.load(checkpoint_path, map_location=device)
+
+    # If it's a bare state_dict (like Task 3), it lacks 'model_state_dict'
+    if "model_state_dict" not in checkpoint and "classifier.1.weight" in checkpoint:
+        # Detect Task 3 EfficientNet setup dynamically via head weights
+        num_classes = checkpoint["classifier.1.weight"].shape[0]
+        class_names = TASK3_CLASS_NAMES if num_classes == 7 else [f"Class {i}" for i in range(num_classes)]
+        
+        model = SkinLesionClassifier(num_classes=num_classes).to(device)
+        # Reconstruct PyTorch default classifier head since the checkpoint was trained bare 
+        in_features = model.backbone.classifier[1].in_features
+        model.backbone.classifier = nn.Sequential(
+            nn.Dropout(p=0.2, inplace=True),
+            nn.Linear(in_features, num_classes),
+        ).to(device)
+        model.backbone.load_state_dict(checkpoint)
+        model.eval()
+        model_type = "task3_multiclass"
+        print(f"Loaded raw {model_type} state_dict model: {checkpoint_path} ({num_classes} classes)")
+        return model, model_type, num_classes, class_names
 
     num_classes = checkpoint.get("num_classes", 2)
     class_names = checkpoint.get("class_names", ["Benign", "Malignant"])
