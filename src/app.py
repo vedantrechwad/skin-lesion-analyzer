@@ -22,6 +22,7 @@ from dataset_multiclass import MULTICLASS_NAMES, RISK_LEVELS, RISK_COLORS
 from tta import predict_with_tta
 from abcde import analyze_abcde, create_abcde_visualization
 from report_pdf import generate_report
+from unet import load_unet_model
 
 matplotlib.use("Agg")
 
@@ -33,6 +34,7 @@ OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CHECKPOINT = OUTPUTS_DIR / "best_model.pth"
 MULTICLASS_CHECKPOINT = OUTPUTS_DIR / "best_model_multiclass.pth"
+UNET_CHECKPOINT = OUTPUTS_DIR / "best_unet_model.pth"
 DEFAULT_THRESHOLD = 0.50
 HISTORY_COLUMNS = [
     "Time",
@@ -60,6 +62,14 @@ PLOT_FILES = {
 
 model = None
 multiclass_model = None
+unet_model = None
+
+def get_unet_model():
+    global unet_model
+    if unet_model is None:
+        if UNET_CHECKPOINT.exists():
+            unet_model = load_unet_model(str(UNET_CHECKPOINT), DEVICE)
+    return unet_model
 
 def get_multiclass_model():
     global multiclass_model
@@ -555,8 +565,9 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
     abcde_res = None
     abcde_visual_path = None
     if run_abcde:
-        abcde_res = analyze_abcde(pil_resized)
-        abcde_visual_path = create_abcde_visualization_wrapper(pil_resized, abcde_res)
+        unet_model_loaded = get_unet_model()
+        abcde_res = analyze_abcde(pil_resized, unet_model=unet_model_loaded)
+        abcde_visual_path = create_abcde_visualization_wrapper(pil_resized, abcde_res, unet_model=unet_model_loaded)
 
     if decision_idx == 0:
         advice = (
@@ -652,10 +663,10 @@ def create_multiclass_figure(probs: dict, top_class: str, risk_level: str) -> st
     plt.close(fig)
     return tmp.name
 
-def create_abcde_visualization_wrapper(pil_resized, abcde_res):
+def create_abcde_visualization_wrapper(pil_resized, abcde_res, unet_model=None):
     import numpy as np
     from abcde import create_abcde_visualization
-    vis_np = create_abcde_visualization(pil_resized, abcde_res)
+    vis_np = create_abcde_visualization(pil_resized, abcde_res, unet_model=unet_model)
     
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(12, 4), facecolor="#09111d")

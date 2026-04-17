@@ -19,11 +19,43 @@ from typing import Optional
 
 # ── Lesion segmentation ──────────────────────────────────────────────────────
 
-def _segment_lesion(image_np: np.ndarray) -> np.ndarray:
+def _segment_lesion(image_np: np.ndarray, unet_model=None) -> np.ndarray:
     """
-    Segment the lesion from background using adaptive thresholding.
+    Segment the lesion from background.
+    If unet_model is provided, uses Deep Learning segmentation trained on ISIC 2018 Task 1.
+    Otherwise, falls back to adaptive Otsu thresholding.
     Returns a binary mask (uint8, 0/255).
     """
+    if unet_model is not None:
+        import torch
+        from torchvision import transforms
+        from PIL import Image
+
+        h, w = image_np.shape[:2]
+        pil_img = Image.fromarray(image_np).convert("RGB")
+        pil_resized = pil_img.resize((256, 256))
+        
+        tensor = transforms.ToTensor()(pil_resized)
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        tensor = normalize(tensor).unsqueeze(0)
+        
+        device = next(unet_model.parameters()).device
+        tensor = tensor.to(device)
+        
+        with torch.no_grad():
+            output = unet_model(tensor)
+            pred = (torch.sigmoid(output) > 0.5).float().squeeze().cpu().numpy()
+            
+        mask = (pred * 255).astype(np.uint8)
+        
+        if (h, w) != (256, 256):
+            mask = cv2.resize(mask, (w, h), interpolation=cv2.INTER_NEAREST)
+            
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+        
+        return mask
+
     # Convert to grayscale
     gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
 
@@ -234,13 +266,14 @@ def _compute_evolution() -> dict:
 
 # ── Full ABCDE analysis ─────────────────────────────────────────────────────
 
-def analyze_abcde(image, return_mask: bool = False) -> dict:
+def analyze_abcde(image, return_mask: bool = False, unet_model=None) -> dict:
     """
     Run full ABCDE analysis on a skin lesion image.
 
     Args:
         image: PIL Image or numpy array (RGB)
         return_mask: if True, include the segmentation mask in the result
+        unet_model: PyTorch deep learning unet model for segmentation
 
     Returns:
         dict with keys: asymmetry, border, color, diameter, evolution,
@@ -256,7 +289,7 @@ def analyze_abcde(image, return_mask: bool = False) -> dict:
     image_resized = cv2.resize(image_np, (target_size, target_size))
 
     # Segment the lesion
-    mask = _segment_lesion(image_resized)
+    mask = _segment_lesion(image_resized, unet_model=unet_model)
 
     # Run each criterion
     asymmetry = _compute_asymmetry(mask)
@@ -292,7 +325,7 @@ def analyze_abcde(image, return_mask: bool = False) -> dict:
     return result
 
 
-def create_abcde_visualization(image, abcde_result: dict) -> np.ndarray:
+def create_abcde_visualization(image, abcde_result: dict, unet_model=None) -> np.ndarray:
     """
     Create a visual summary of the ABCDE analysis with the segmentation overlay.
 
@@ -309,7 +342,7 @@ def create_abcde_visualization(image, abcde_result: dict) -> np.ndarray:
 
     # Re-segment at display size
     display = cv2.resize(image_np, (256, 256))
-    mask = _segment_lesion(display)
+    mask = _segment_lesion(display, unet_model=unet_model)
 
     fig, axes = plt.subplots(1, 3, figsize=(14, 4.5), facecolor="#09111d")
     fig.suptitle("ABCDE Dermatological Analysis", color="#e8f2ff", fontsize=14, fontweight="bold")
