@@ -554,13 +554,30 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
     mc_model = get_multiclass_model()
     multiclass_result = None
     mc_visual_path = None
+    NV_PENALTY = 1.0 # Configurable penalty for recalibration
+    raw_logits_np = None
+    calibrated_logits_np = None
+
     if mc_model is not None:
+        # Standard pass to get logits for debug diagnostics
+        with torch.no_grad():
+            outputs = mc_model(tensor.unsqueeze(0))
+            raw_logits_np = outputs[0].cpu().numpy()
+            
+            # Apply Calibration (subtractive penalty to NV at index 1)
+            calibrated_outputs = outputs.clone()
+            calibrated_outputs[0, 1] -= NV_PENALTY
+            calibrated_logits_np = calibrated_outputs[0].cpu().numpy()
+            
+            # Probs for non-TTA case
+            mc_probs = torch.softmax(calibrated_outputs, dim=1)[0].cpu().numpy()
+
+        # If TTA requested, it takes precedence for the final prediction mc_probs
         if use_tta:
+            # Note: predict_with_tta returns avg probabilities; 
+            # we accept them as-is for now (calibration usually applied to logits)
             mc_probs = predict_with_tta(mc_model, pil_resized, DEVICE)
-        else:
-            with torch.no_grad():
-                outputs = mc_model(tensor.unsqueeze(0))
-                mc_probs = torch.softmax(outputs, dim=1)[0].cpu().numpy()
+
         
         # If output length does not match TASK3_CLASSES, it might be an old model
         # Safe fallback
@@ -590,7 +607,14 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
             "risk_level": risk_level,
             "probabilities": mc_prob_dict,
             "top3": top3,
-            "notes": diagnostic_notes
+            "notes": diagnostic_notes,
+            "debug": {
+                "raw_logits": {name: float(l) for name, l in zip(class_names, raw_logits_np)} if raw_logits_np is not None else {},
+                "calibrated_logits": {name: float(l) for name, l in zip(class_names, calibrated_logits_np)} if calibrated_logits_np is not None else {},
+                "penalty_applied": NV_PENALTY,
+                "tta_active": bool(use_tta),
+                "task2_raw_means": attr_raw_means if 'attr_raw_means' in locals() else {}
+            }
         }
         mc_visual_path = create_multiclass_figure(mc_prob_dict, top_class, risk_level, diagnostic_notes)
 
@@ -607,23 +631,41 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
             attr_sigs = torch.sigmoid(outputs).squeeze(0).cpu().numpy()
             
         attr_names = ["Globules", "Milia-like cyst", "Negative network", "Pigment network", "Streaks"]
-        # Calibrated Thresholds
+        # Refined Calibrated Thresholds
         thresh_dict = {
-            "Globules": 0.03,
+            "Globules": 0.015,
             "Milia-like cyst": 0.02,
-            "Negative network": 0.02,
+            "Negative network": 0.015,
             "Pigment network": 0.05,
-            "Streaks": 0.02
+            "Streaks": 0.015
         }
         
         attr_masks = []
+        attr_levels = {}
+        attr_raw_means = {}
         for i, name in enumerate(attr_names):
             t = thresh_dict.get(name, 0.5)
+            raw_mean = float(np.mean(attr_sigs[i]))
+            attr_raw_means[name] = raw_mean
+            
+            # Determine Level: High, Moderate, Low
+            if raw_mean > t * 4: # Strong activation or high density
+                level = "High"
+            elif raw_mean > t:
+                level = "Moderate"
+            else:
+                level = "Low / Not detected"
+                
+            attr_levels[name] = level
             mask = (attr_sigs[i] > t).astype(np.float32)
             attr_masks.append(mask)
-            attributes_detected[name] = bool(np.sum(mask) > 10)
+            attributes_detected[name] = level if level != "Low / Not detected" else False
             
-        attribute_visual_path = create_attribute_visualization(np.array(pil_resized), np.array(attr_masks), attr_names, thresh_dict)
+        # Check for dominant attribute
+        if not any(v != "Low / Not detected" for v in attr_levels.values()):
+            attributes_detected["_note"] = "No dominant dermoscopic attribute detected."
+
+        attribute_visual_path = create_attribute_visualization(np.array(pil_resized), np.array(attr_masks), attr_names, thresh_dict, attr_levels, attr_raw_means)
 
     # ── ABCDE Analysis (Legacy Fallback if requested) ──
     abcde_res = None
@@ -692,42 +734,48 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
     }
 
 
-def create_attribute_visualization(image_np: np.ndarray, masks: np.ndarray, names: list, thresholds: dict) -> str:
+def create_attribute_visualization(image_np: np.ndarray, masks: np.ndarray, names: list, thresholds: dict, levels: dict = None, raw_means: dict = None) -> str:
     """
-    Creates a 2x3 grid showing the original image and the 5 attribute masks.
+    Creates a 2x3 grid showing the original image and the 5 attribute masks with tiered levels.
     """
-    fig, axes = plt.subplots(2, 3, figsize=(12, 8), facecolor="#09111d")
-    fig.suptitle("Task 2: Dermoscopic Attribute Segmentation", color="#e8f2ff", fontsize=14, fontweight="bold")
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10), facecolor="#09111d")
     axes = axes.flatten()
     
-    # Original image
+    # Plot original on first axis
     axes[0].imshow(image_np)
-    axes[0].set_title("Original Image", color="#cbd7e6", fontsize=11)
+    axes[0].set_title("Original Image", color="#cbd7e6", fontsize=12)
     axes[0].axis("off")
     
+    # Colormaps for attributes
     colors = [
-        [0, 255, 0],   # Globules: Green
-        [255, 0, 0],   # Milia: Red
-        [0, 255, 255], # Neg network: Cyan
-        [255, 255, 0], # Pigment: Yellow
-        [255, 0, 255]  # Streaks: Magenta
+        [1, 0, 0],   # Red
+        [0, 1, 0],   # Green
+        [0, 0, 1],   # Blue
+        [1, 1, 0],   # Yellow
+        [1, 0, 1],   # Magenta
     ]
     
     for i in range(5):
         ax = axes[i+1]
         mask = masks[i]
+        color = colors[i]
         
-        # Create an overlay
-        overlay = image_np.copy()
-        color = np.array(colors[i], dtype=np.uint8)
+        # Create translucent overlay
+        overlay = np.zeros((mask.shape[0], mask.shape[1], 4))
+        overlay[..., :3] = color
+        overlay[..., 3] = mask * 0.6 # Alpha 0.6
         
-        # Apply color tint where mask is 1
-        overlay[mask == 1] = (overlay[mask == 1] * 0.4 + color * 0.6).astype(np.uint8)
-        
+        ax.imshow(image_np)
         ax.imshow(overlay)
-        status = "Detected" if np.sum(mask) > 10 else "None"
-        thresh = thresholds.get(names[i], 0.5)
-        ax.set_title(f"{names[i]}\n(T={thresh}, {status})", color="#cbd7e6", fontsize=10)
+        
+        # Determine Title with Level and Score
+        name = names[i]
+        level = levels.get(name, "Unknown") if levels else "N/A"
+        raw_score = raw_means.get(name, 0.0) if raw_means else 0.0
+        thresh = thresholds.get(name, 0.5)
+        
+        title_color = "#34d399" if level == "High" else ("#fbbf24" if level == "Moderate" else "#94a3b8")
+        ax.set_title(f"{name}\n{level} (μ={raw_score:.4f}, T={thresh})", color=title_color, fontsize=10, fontweight="bold")
         ax.axis("off")
         
     plt.tight_layout()
@@ -819,7 +867,8 @@ def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run
         analysis,
         analysis["mc_visual_path"],
         analysis["attribute_visual_path"],
-        analysis["abcde_visual_path"]
+        analysis["abcde_visual_path"],
+        analysis.get("multiclass_result", {}).get("debug", {})
     )
 
 
@@ -1450,6 +1499,8 @@ def build_ui():
                     )
                     with gr.Group(elem_classes=["panel-body"]):
                         mc_output_img = gr.Image(label="Task 3 Predictions", interactive=False, elem_classes=["output-box"])
+                        with gr.Accordion("Advanced Developer Diagnostics", open=False):
+                            mc_debug_json = gr.JSON(label="Logit/Probability Calibration Audit")
 
             with gr.Tab("Task 2 Dermoscopic Attributes"):
                 with gr.Group(elem_classes=["panel"]):
@@ -1705,7 +1756,8 @@ def build_ui():
                 latest_analysis_state,
                 mc_output_img,
                 attribute_output_img,
-                abcde_output_img
+                abcde_output_img,
+                mc_debug_json
             ],
         )
 
