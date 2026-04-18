@@ -12,6 +12,14 @@ import torch.nn as nn
 from torchvision import models
 
 TASK3_CLASSES = ["MEL", "NV", "BCC", "AKIEC", "BKL", "DF", "VASC"]
+TASK2_ATTR_CLASSES = ["globules", "milia_like_cyst", "negative_network", "pigment_network", "streaks"]
+TASK2_ATTR_NAMES = [
+    "Globules", 
+    "Milia-like cyst", 
+    "Negative network", 
+    "Pigment network", 
+    "Streaks"
+]
 TASK3_CLASS_NAMES = [
     "Melanoma", 
     "Melanocytic nevus", 
@@ -181,7 +189,18 @@ def load_model_auto(checkpoint_path: str, device: torch.device):
         ).to(device)
         model.backbone.load_state_dict(checkpoint)
         model.eval()
-        model_type = "task3_multiclass"
+        
+        # Determine model type based on class count
+        if num_classes == 7:
+            model_type = "task3_multiclass"
+            class_names = TASK3_CLASS_NAMES
+        elif num_classes == 5:
+            model_type = "task2_attribute_classifier"
+            class_names = TASK2_ATTR_NAMES
+        else:
+            model_type = "unknown_multiclass"
+            class_names = [f"Class {i}" for i in range(num_classes)]
+            
         print(f"Loaded raw {model_type} state_dict model: {checkpoint_path} ({num_classes} classes)")
         return model, model_type, num_classes, class_names
 

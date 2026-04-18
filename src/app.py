@@ -35,7 +35,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CHECKPOINT = OUTPUTS_DIR / "best_model.pth"
 MULTICLASS_CHECKPOINT = PROJECT_ROOT / "task3_best_classifier.pth"
 UNET_CHECKPOINT = OUTPUTS_DIR / "best_unet_model.pth"
-ATTRIBUTE_CHECKPOINT = PROJECT_ROOT / "attribute_unet_best.pth"
+ATTRIBUTE_CHECKPOINT = PROJECT_ROOT / "task2_attribute_classifier_best.pth"
 DEFAULT_THRESHOLD = 0.50
 HISTORY_COLUMNS = [
     "Time",
@@ -70,7 +70,10 @@ def get_attribute_model():
     global attribute_model
     if attribute_model is None:
         if ATTRIBUTE_CHECKPOINT.exists():
-            attribute_model = load_attribute_unet(str(ATTRIBUTE_CHECKPOINT), DEVICE)
+            attribute_model, _, _, _ = load_model_auto(str(ATTRIBUTE_CHECKPOINT), DEVICE)
+            attribute_model.eval()
+        else:
+            print(f"Warning: Attribute classifier missing at {ATTRIBUTE_CHECKPOINT}")
     return attribute_model
 
 def get_unet_model():
@@ -618,54 +621,44 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         }
         mc_visual_path = create_multiclass_figure(mc_prob_dict, top_class, risk_level, diagnostic_notes)
 
-    # ── Task 2 Attribute Inference ──
+    # ── Task 2 Attribute Presence Inference ──
     attr_model = get_attribute_model()
     attribute_visual_path = None
     attributes_detected = {}
+    
     if attr_model is not None:
         with torch.no_grad():
-            outputs = attr_model(tensor_192.unsqueeze(0))
-            # Rescale output to the display resized image size
-            import torch.nn.functional as F_nn
-            outputs = F_nn.interpolate(outputs, size=(IMAGE_SIZE, IMAGE_SIZE), mode="bilinear", align_corners=False)
-            attr_sigs = torch.sigmoid(outputs).squeeze(0).cpu().numpy()
+            # Use standard 224x224 tensor for the EfficientNet attribute classifier
+            outputs = attr_model(tensor.unsqueeze(0))
+            attr_probs = torch.sigmoid(outputs)[0].cpu().numpy()
             
         attr_names = ["Globules", "Milia-like cyst", "Negative network", "Pigment network", "Streaks"]
-        # Refined Calibrated Thresholds
-        thresh_dict = {
-            "Globules": 0.015,
-            "Milia-like cyst": 0.02,
-            "Negative network": 0.015,
-            "Pigment network": 0.05,
-            "Streaks": 0.015
-        }
         
-        attr_masks = []
-        attr_levels = {}
-        attr_raw_means = {}
-        for i, name in enumerate(attr_names):
-            t = thresh_dict.get(name, 0.5)
-            raw_mean = float(np.mean(attr_sigs[i]))
-            attr_raw_means[name] = raw_mean
-            
-            # Determine Level: High, Moderate, Low
-            if raw_mean > t * 4: # Strong activation or high density
-                level = "High"
-            elif raw_mean > t:
-                level = "Moderate"
+        # Evidence Level Categorization & Sorting
+        attr_results = []
+        for prob, name in zip(attr_probs, attr_names):
+            if prob >= 0.65:
+                status = "High Evidence"
+            elif prob >= 0.35:
+                status = "Moderate Evidence"
             else:
-                level = "Low / Not detected"
-                
-            attr_levels[name] = level
-            mask = (attr_sigs[i] > t).astype(np.float32)
-            attr_masks.append(mask)
-            attributes_detected[name] = level if level != "Low / Not detected" else False
+                status = "Low / Not Detected"
             
-        # Check for dominant attribute
-        if not any(v != "Low / Not detected" for v in attr_levels.values()):
-            attributes_detected["_note"] = "No dominant dermoscopic attribute detected."
+            attr_results.append({
+                "name": name,
+                "prob": float(prob),
+                "status": status
+            })
+            attributes_detected[name] = status if status != "Low / Not Detected" else False
 
-        attribute_visual_path = create_attribute_visualization(np.array(pil_resized), np.array(attr_masks), attr_names, thresh_dict, attr_levels, attr_raw_means)
+        # Sort by confidence descending
+        attr_results = sorted(attr_results, key=lambda x: x["prob"], reverse=True)
+        
+        # Check if all scores are low
+        if all(r["prob"] < 0.35 for r in attr_results):
+            attributes_detected["_note"] = "No dominant dermoscopic structures detected."
+
+        attribute_visual_path = create_attribute_presence_figure(attr_results)
 
     # ── ABCDE Analysis (Legacy Fallback if requested) ──
     abcde_res = None
@@ -734,51 +727,54 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
     }
 
 
-def create_attribute_visualization(image_np: np.ndarray, masks: np.ndarray, names: list, thresholds: dict, levels: dict = None, raw_means: dict = None) -> str:
+def create_attribute_presence_figure(results: list) -> str:
     """
-    Creates a 2x3 grid showing the original image and the 5 attribute masks with tiered levels.
+    Creates a horizontal bar chart showing attribute presence confidence and evidence levels.
     """
-    fig, axes = plt.subplots(2, 3, figsize=(15, 10), facecolor="#09111d")
-    axes = axes.flatten()
+    names = [r["name"] for r in results]
+    probs = [r["prob"] * 100 for r in results]
+    statuses = [r["status"] for r in results]
     
-    # Plot original on first axis
-    axes[0].imshow(image_np)
-    axes[0].set_title("Original Image", color="#cbd7e6", fontsize=12)
-    axes[0].axis("off")
+    # Colors: Green for High, Amber for Moderate, Slate for Low
+    colors = []
+    for s in statuses:
+        if s == "High Evidence":
+            colors.append("#10b981")
+        elif s == "Moderate Evidence":
+            colors.append("#f59e0b")
+        else:
+            colors.append("#475569")
+
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor="#09111d")
+    ax.set_facecolor("#09111d")
     
-    # Colormaps for attributes
-    colors = [
-        [1, 0, 0],   # Red
-        [0, 1, 0],   # Green
-        [0, 0, 1],   # Blue
-        [1, 1, 0],   # Yellow
-        [1, 0, 1],   # Magenta
-    ]
+    bars = ax.barh(names, probs, color=colors, height=0.7)
+    ax.invert_yaxis()  # Highest confidence at top
     
-    for i in range(5):
-        ax = axes[i+1]
-        mask = masks[i]
-        color = colors[i]
-        
-        # Create translucent overlay
-        overlay = np.zeros((mask.shape[0], mask.shape[1], 4))
-        overlay[..., :3] = color
-        overlay[..., 3] = mask * 0.6 # Alpha 0.6
-        
-        ax.imshow(image_np)
-        ax.imshow(overlay)
-        
-        # Determine Title with Level and Score
-        name = names[i]
-        level = levels.get(name, "Unknown") if levels else "N/A"
-        raw_score = raw_means.get(name, 0.0) if raw_means else 0.0
-        thresh = thresholds.get(name, 0.5)
-        
-        title_color = "#34d399" if level == "High" else ("#fbbf24" if level == "Moderate" else "#94a3b8")
-        ax.set_title(f"{name}\n{level} (μ={raw_score:.4f}, T={thresh})", color=title_color, fontsize=10, fontweight="bold")
-        ax.axis("off")
-        
+    # Labeling
+    ax.set_title("Dermoscopic Attribute Presence Analysis", color="#e8f2ff", fontsize=16, fontweight="bold", pad=20)
+    ax.set_xlabel("Confidence (%)", color="#94a3b8", fontsize=12)
+    ax.set_xlim(0, 100)
+    
+    # Grid and spines
+    ax.xaxis.grid(True, linestyle="--", alpha=0.2, color="#94a3b8")
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    ax.spines["left"].set_color("#334155")
+    ax.spines["bottom"].set_color("#334155")
+    
+    # Tick colors
+    ax.tick_params(colors="#cbd7e6", labelsize=11)
+    
+    # Add text labels on bars
+    for i, (bar, prob, status) in enumerate(zip(bars, probs, statuses)):
+        width = bar.get_width()
+        label_text = f"{prob:.1f}% — {status}"
+        ax.text(width + 2, bar.get_y() + bar.get_height()/2, label_text, 
+                va='center', color="#e8f2ff", fontsize=11, fontweight="bold")
+
     plt.tight_layout()
+    
     tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
     tmp.close()
     plt.savefig(tmp.name, dpi=130, bbox_inches="tight", facecolor="#09111d")
@@ -866,7 +862,6 @@ def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run
         history_state,
         analysis,
         analysis["mc_visual_path"],
-        analysis["attribute_visual_path"],
         analysis["abcde_visual_path"],
         analysis.get("multiclass_result", {}).get("debug", {})
     )
@@ -1485,39 +1480,7 @@ def build_ui():
                                     """
                                 )
 
-            with gr.Tab("Task 3 Disease Classification"):
-                with gr.Group(elem_classes=["panel"]):
-                    gr.HTML(
-                        '''
-                        <div class="panel-header">
-                            <h3 class="panel-title">7-Class Disease Probability Distribution</h3>
-                            <p class="panel-subtitle">
-                                The task 3 multi-class model estimates probabilities across 7 diagnostic categories.
-                            </p>
-                        </div>
-                        '''
-                    )
-                    with gr.Group(elem_classes=["panel-body"]):
-                        mc_output_img = gr.Image(label="Task 3 Predictions", interactive=False, elem_classes=["output-box"])
-                        with gr.Accordion("Advanced Developer Diagnostics", open=False):
-                            mc_debug_json = gr.JSON(label="Logit/Probability Calibration Audit")
-
-            with gr.Tab("Task 2 Dermoscopic Attributes"):
-                with gr.Group(elem_classes=["panel"]):
-                    gr.HTML(
-                        '''
-                        <div class="panel-header">
-                            <h3 class="panel-title">Task 2: Dermatological Attribute Features</h3>
-                            <p class="panel-subtitle">
-                                Deep Learning segmentation of 5 key lesion attributes: Globules, Milia, Networks, and Streaks.
-                            </p>
-                        </div>
-                        '''
-                    )
-                    with gr.Group(elem_classes=["panel-body"]):
-                        attribute_output_img = gr.Image(label="Segmented Attributes", interactive=False, elem_classes=["output-box"])
-
-            with gr.Tab("ABCDE Auto-Vision Details"):
+            with gr.Tab("Lesion Segmentation"):
                 with gr.Group(elem_classes=["panel"]):
                     gr.HTML(
                         '''
@@ -1531,6 +1494,24 @@ def build_ui():
                     )
                     with gr.Group(elem_classes=["panel-body"]):
                         abcde_output_img = gr.Image(label="ABCDE Analysis Details", interactive=False, elem_classes=["output-box"])
+
+            with gr.Tab("Disease Classification"):
+                with gr.Group(elem_classes=["panel"]):
+                    gr.HTML(
+                        '''
+                        <div class="panel-header">
+                            <h3 class="panel-title">7-Class Disease Probability Distribution</h3>
+                            <p class="panel-subtitle">
+                                The multi-class model estimates probabilities across 7 diagnostic categories.
+                            </p>
+                        </div>
+                        '''
+                    )
+                    with gr.Group(elem_classes=["panel-body"]):
+                        mc_output_img = gr.Image(label="Predictions", interactive=False, elem_classes=["output-box"])
+                        with gr.Accordion("Advanced Developer Diagnostics", open=False):
+                            mc_debug_json = gr.JSON(label="Logit/Probability Calibration Audit")
+
 
             with gr.Tab("Symptom Review"):
                 with gr.Row(equal_height=True):
@@ -1755,7 +1736,6 @@ def build_ui():
                 history_state,
                 latest_analysis_state,
                 mc_output_img,
-                attribute_output_img,
                 abcde_output_img,
                 mc_debug_json
             ],
