@@ -184,10 +184,10 @@ if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint", default="outputs/best_model.pth")
+    parser.add_argument("--checkpoint", default="models/best_model.pth")
     parser.add_argument("--test-csv",   default="data/val.csv")
     parser.add_argument("--image-dir",  default="data/images")
-    parser.add_argument("--output-dir", default="outputs")
+    parser.add_argument("--output-dir", default="dashboards")
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

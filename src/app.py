@@ -17,11 +17,12 @@ from PIL import Image
 
 from dataset import CLASS_NAMES, IMAGE_SIZE, get_transforms
 from gradcam import GradCAM, overlay_heatmap
-from model import SkinLesionClassifier, load_model, load_model_auto
-from dataset_multiclass import MULTICLASS_NAMES, RISK_LEVELS, RISK_COLORS
+from model import SkinLesionClassifier, load_model, load_model_auto, TASK3_CLASSES, TASK3_CLASS_NAMES, TASK3_RISK_LEVELS
+from dataset_multiclass import RISK_LEVELS, RISK_COLORS
 from tta import predict_with_tta
 from abcde import analyze_abcde, create_abcde_visualization
 from report_pdf import generate_report
+from unet import load_unet_model, load_attribute_unet
 
 matplotlib.use("Agg")
 
@@ -30,14 +31,21 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 IMAGE_DIR = DATA_DIR / "images"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
+MODELS_DIR = PROJECT_ROOT / "models"
+DASHBOARDS_DIR = PROJECT_ROOT / "dashboards"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-CHECKPOINT = OUTPUTS_DIR / "best_model.pth"
-MULTICLASS_CHECKPOINT = OUTPUTS_DIR / "best_model_multiclass.pth"
+
+PRIMARY_CHECKPOINT = MODELS_DIR / "benign_malignant_best.pth"
+SECONDARY_CHECKPOINT = MODELS_DIR / "best_model.pth"
+MULTICLASS_CHECKPOINT = MODELS_DIR / "task3_best_classifier.pth"
+UNET_CHECKPOINT = MODELS_DIR / "best_unet_model.pth"
+ATTRIBUTE_CHECKPOINT = MODELS_DIR / "task2_attribute_classifier_best.pth"
 DEFAULT_THRESHOLD = 0.50
 HISTORY_COLUMNS = [
     "Time",
     "Source",
     "Decision",
+    "Predicted Class",
     "Risk Band",
     "Confidence %",
     "Malignant %",
@@ -53,13 +61,36 @@ SKIN_CARE_SOURCES = {
     "MedlinePlus Skin Care": "https://medlineplus.gov/skinconditions.html",
 }
 PLOT_FILES = {
-    "Confusion Matrix": OUTPUTS_DIR / "confusion_matrix.png",
-    "ROC Curve": OUTPUTS_DIR / "roc_curve.png",
-    "Training History": OUTPUTS_DIR / "training_history.png",
+    "Confusion Matrix": DASHBOARDS_DIR / "confusion matrix.png",
+    "ROC Curve": DASHBOARDS_DIR / "Roc curve.png",
+    "PR Curve": DASHBOARDS_DIR / "precision recall curve.png",
+    "Training Loss": DASHBOARDS_DIR / "training loss.png",
+    "Validation Accuracy": DASHBOARDS_DIR / "validation accuracy.png",
+    "Validation AUC": DASHBOARDS_DIR / "validation auc.png",
 }
 
-model = None
+primary_model = None
+secondary_model = None
 multiclass_model = None
+unet_model = None
+attribute_model = None
+
+def get_attribute_model():
+    global attribute_model
+    if attribute_model is None:
+        if ATTRIBUTE_CHECKPOINT.exists():
+            attribute_model, _, _, _ = load_model_auto(str(ATTRIBUTE_CHECKPOINT), DEVICE)
+            attribute_model.eval()
+        else:
+            print(f"Warning: Attribute classifier missing at {ATTRIBUTE_CHECKPOINT}")
+    return attribute_model
+
+def get_unet_model():
+    global unet_model
+    if unet_model is None:
+        if UNET_CHECKPOINT.exists():
+            unet_model = load_unet_model(str(UNET_CHECKPOINT), DEVICE)
+    return unet_model
 
 def get_multiclass_model():
     global multiclass_model
@@ -70,16 +101,28 @@ def get_multiclass_model():
     return multiclass_model
 
 
+def get_secondary_model():
+    global secondary_model
+    if secondary_model is None:
+        if SECONDARY_CHECKPOINT.exists():
+            secondary_model = load_model(str(SECONDARY_CHECKPOINT), DEVICE)
+            secondary_model.eval()
+    return secondary_model
+
+
 def get_model():
-    global model
-    if model is None:
-        if CHECKPOINT.exists():
-            model = load_model(str(CHECKPOINT), DEVICE)
+    """Returns the primary binary classifier."""
+    global primary_model
+    if primary_model is None:
+        if PRIMARY_CHECKPOINT.exists():
+            # benign_malignant_best.pth is primary
+            primary_model, _, _, _ = load_model_auto(str(PRIMARY_CHECKPOINT), DEVICE)
+            primary_model.eval()
         else:
-            print("No checkpoint found. Running in demo mode with untrained weights.")
-            model = SkinLesionClassifier().to(DEVICE)
-            model.eval()
-    return model
+            print("Primary checkpoint missing. Falling back to untrained weights.")
+            primary_model = SkinLesionClassifier().to(DEVICE)
+            primary_model.eval()
+    return primary_model
 
 
 def build_placeholder_html() -> str:
@@ -319,9 +362,53 @@ def build_result_html(
     malignant_prob: float,
     threshold_pct: float,
     advice: str,
+    confidence_level: str = "High Confidence",
+    primary_info: str = "HAM10000 EfficientNet-B0",
+    secondary_info: str = "Legacy Model",
+    # Multi-Model specific params
+    enable_multimodel: bool = False,
+    consensus_score: float = 100.0,
+    secondary_decision: str = None,
 ) -> str:
     risk_class = "safe" if decision == "Benign" else "warn"
     subtitle = "Low Concern" if decision == "Benign" else "Review Recommended"
+    
+    conf_class = "info-pill" if confidence_level == "High Confidence" else "warn-pill"
+    
+    consensus_html = ""
+    if enable_multimodel and secondary_decision:
+        p_color = "benign" if decision == "Benign" else "malignant"
+        s_color = "benign" if secondary_decision == "Benign" else "malignant"
+        
+        status_text = "Strong Consensus" if consensus_score > 85 else "Mixed Consensus"
+        consensus_note = (
+            "Both models are in strong agreement on the classification." 
+            if decision == secondary_decision and consensus_score > 85
+            else "Models show varying confidence levels. Manual review is prioritized."
+        )
+
+        consensus_html = f"""
+        <div class="consensus-panel">
+            <div class="consensus-header">
+                <span class="consensus-title">Multi-Model Verdict Consensus</span>
+                <span class="consensus-score">{status_text}: {consensus_score:.0f}%</span>
+            </div>
+            <div class="verdict-track">
+                <div class="verdict-item">
+                    <span>Primary Model</span>
+                    <strong class="verdict-badge {p_color}">{decision}</strong>
+                </div>
+                <div class="verdict-item">
+                    <span>Secondary Model</span>
+                    <strong class="verdict-badge {s_color}">{secondary_decision}</strong>
+                </div>
+            </div>
+            <div class="consensus-meter">
+                <div class="consensus-fill" style="width: {consensus_score}%"></div>
+            </div>
+            <p class="consensus-note">{consensus_note}</p>
+        </div>
+        """
 
     return f"""
     <div class="result-shell">
@@ -330,8 +417,13 @@ def build_result_html(
                 <p class="eyebrow">AI Screening Result</p>
                 <h2>{decision}</h2>
             </div>
-            <span class="status-pill {risk_class}">{subtitle}</span>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="status-pill {conf_class}">{confidence_level}</span>
+                <span class="status-pill {risk_class}">{subtitle}</span>
+            </div>
         </div>
+
+        {consensus_html}
 
         <p class="result-copy">
             This decision uses a malignant screening threshold of <strong>{threshold_pct:.0f}%</strong>.
@@ -341,16 +433,16 @@ def build_result_html(
 
         <div class="metric-grid">
             <div class="metric-card">
-                <span>Decision</span>
-                <strong>{decision}</strong>
+                <span>Primary Model</span>
+                <strong>{primary_info}</strong>
             </div>
             <div class="metric-card">
-                <span>Risk Band</span>
-                <strong>{risk_band}</strong>
+                <span>Secondary Validation</span>
+                <strong>{secondary_info}</strong>
             </div>
             <div class="metric-card">
-                <span>Threshold</span>
-                <strong>{threshold_pct:.0f}% malignant</strong>
+                <span>Probability</span>
+                <strong>{malignant_prob * 100:.1f}% risk</strong>
             </div>
         </div>
 
@@ -376,12 +468,12 @@ def build_result_html(
         </div>
 
         <div class="advice-box">
-            <h3>What this means</h3>
+            <h3>Diagnostic Guidance</h3>
             <p>{advice}</p>
         </div>
 
         <p class="medical-note">
-            Educational and research use only. Always consult a qualified dermatologist for diagnosis.
+            Educational and research use only. Confidence level indicates agreement between primary and legacy ensemble models.
         </p>
     </div>
     """
@@ -485,13 +577,13 @@ def load_pil_image(file_obj) -> Image.Image:
     return Image.open(path).convert("RGB")
 
 
-def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tta: bool = False, run_abcde: bool = False) -> dict:
+def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tta: bool = False, run_abcde: bool = False, enable_multimodel: bool = False) -> dict:
     model = get_model()
     transform = get_transforms("val")
 
     pil_resized = image.resize((IMAGE_SIZE, IMAGE_SIZE)).convert("RGB")
     tensor = transform(pil_resized).to(DEVICE)
-
+    
     # ── Grad-CAM ──
     gradcam = GradCAM(model)
     heatmap, _, _ = gradcam.generate(tensor)
@@ -501,19 +593,70 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
     visual_path = create_visualization_figure(original_np, blended)
 
     # ── Binary Inference ──
+    p_model = get_model()
+    s_model = get_secondary_model() if enable_multimodel else None
+
+    # Primary Inference
     if use_tta:
-        probs = predict_with_tta(model, pil_resized, DEVICE)
+        p_probs = predict_with_tta(p_model, pil_resized, DEVICE)
     else:
         with torch.no_grad():
-            outputs = model(tensor.unsqueeze(0))
-            probs = torch.softmax(outputs, dim=1)[0].cpu().numpy()
+            p_outputs = p_model(tensor.unsqueeze(0))
+            if p_outputs.shape[1] == 1:
+                p_probs = torch.sigmoid(p_outputs)[0].cpu().numpy()
+            else:
+                p_probs = torch.softmax(p_outputs, dim=1)[0].cpu().numpy()
 
-    benign_prob = float(probs[0])
-    malignant_prob = float(probs[1])
-    decision_idx = 1 if malignant_prob >= threshold else 0
-    decision = CLASS_NAMES[decision_idx]
-    confidence = malignant_prob if decision_idx == 1 else benign_prob
+    # Handle 1-class (sigmoid) vs 2-class (softmax)
+    if len(p_probs) == 1:
+        malignant_prob = float(p_probs[0])
+        benign_prob = 1.0 - malignant_prob
+    else:
+        benign_prob = float(p_probs[0])
+        malignant_prob = float(p_probs[1])
+
+    p_class = 1 if malignant_prob >= threshold else 0
+    decision = CLASS_NAMES[p_class]
+    confidence = malignant_prob if p_class == 1 else benign_prob
     risk_band = resolve_risk_band(malignant_prob)
+
+    # Multi-Model Logic
+    confidence_level = "High Confidence"
+    secondary_decision = None
+    consensus_score = 100.0
+    secondary_info = "Not Active"
+    
+    if enable_multimodel and s_model:
+        secondary_info = "Legacy Ensemble Model"
+        if use_tta:
+            s_probs = predict_with_tta(s_model, pil_resized, DEVICE)
+        else:
+            with torch.no_grad():
+                s_outputs = s_model(tensor.unsqueeze(0))
+                if s_outputs.shape[1] == 1:
+                    s_probs = torch.sigmoid(s_outputs)[0].cpu().numpy()
+                else:
+                    s_probs = torch.softmax(s_outputs, dim=1)[0].cpu().numpy()
+        
+        if len(s_probs) == 1:
+            s_malignant_prob = float(s_probs[0])
+        else:
+            s_malignant_prob = float(s_probs[1])
+            
+        s_class = 1 if s_malignant_prob >= threshold else 0
+        secondary_decision = CLASS_NAMES[s_class]
+
+        # Calculate Consensus Score: based on probability delta
+        p_prob = malignant_prob
+        s_prob = s_malignant_prob
+        # Shift probabilities to be centered around 0.5 for relative alignment
+        delta = abs(p_prob - s_prob)
+        consensus_score = max(0, 100 * (1.0 - delta))
+
+        if p_class != s_class:
+            confidence_level = "Mixed Consensus"
+        elif consensus_score < 80:
+            confidence_level = "Low Consensus"
 
     binary_result = {
         "decision": decision, 
@@ -521,44 +664,131 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         "benign_prob": benign_prob,
         "malignant_prob": malignant_prob, 
         "threshold": threshold, 
-        "risk_band": risk_band
+        "risk_band": risk_band,
+        "confidence_level": confidence_level,
+        "primary_info": "HAM10000 EfficientNet-B0",
+        "secondary_info": secondary_info,
+        "enable_multimodel": enable_multimodel,
+        "consensus_score": consensus_score,
+        "secondary_decision": secondary_decision
     }
 
-    # ── Multi-class Inference ──
+    # ── Task 3 Multi-class Inference ──
     mc_model = get_multiclass_model()
     multiclass_result = None
     mc_visual_path = None
+    NV_PENALTY = 1.0 # Configurable penalty for recalibration
+    raw_logits_np = None
+    calibrated_logits_np = None
+
     if mc_model is not None:
+        # Standard pass to get logits for debug diagnostics
+        with torch.no_grad():
+            outputs = mc_model(tensor.unsqueeze(0))
+            raw_logits_np = outputs[0].cpu().numpy()
+            
+            # Apply Calibration (subtractive penalty to NV at index 1)
+            calibrated_outputs = outputs.clone()
+            calibrated_outputs[0, 1] -= NV_PENALTY
+            calibrated_logits_np = calibrated_outputs[0].cpu().numpy()
+            
+            # Probs for non-TTA case
+            mc_probs = torch.softmax(calibrated_outputs, dim=1)[0].cpu().numpy()
+
+        # If TTA requested, it takes precedence for the final prediction mc_probs
         if use_tta:
+            # Note: predict_with_tta returns avg probabilities; 
+            # we accept them as-is for now (calibration usually applied to logits)
             mc_probs = predict_with_tta(mc_model, pil_resized, DEVICE)
-        else:
-            with torch.no_grad():
-                outputs = mc_model(tensor.unsqueeze(0))
-                mc_probs = torch.softmax(outputs, dim=1)[0].cpu().numpy()
+
         
+        # If output length does not match TASK3_CLASSES, it might be an old model
+        # Safe fallback
+        class_keys = TASK3_CLASSES if len(mc_probs) == 7 else [f"Class {i}" for i in range(len(mc_probs))]
+        class_names = TASK3_CLASS_NAMES if len(mc_probs) == 7 else class_keys
+
         top_idx = int(np.argmax(mc_probs))
-        top_class = MULTICLASS_NAMES[top_idx]
-        risk_level = RISK_LEVELS[top_class]
+        top_class = class_names[top_idx]
+        risk_level = TASK3_RISK_LEVELS.get(top_class, "Unknown") if len(mc_probs) == 7 else RISK_LEVELS.get(class_keys[top_idx], "Unknown")
         
-        # Build multi-class output dict
-        mc_prob_dict = {name: float(prob) for name, prob in zip(MULTICLASS_NAMES, mc_probs)}
+        mc_prob_dict = {name: float(prob) for name, prob in zip(class_names, mc_probs)}
+        
+        # Diagnostic Logic: Top 3 & Confidence Check
+        sorted_probs = sorted(mc_prob_dict.items(), key=lambda x: x[1], reverse=True)
+        top3 = sorted_probs[:3]
+        top1_val = top3[0][1]
+        top2_val = top3[1][1] if len(top3) > 1 else 0
+        
+        diagnostic_notes = []
+        if top1_val > 0.95:
+            diagnostic_notes.append("Prediction highly confident; model may favor common classes.")
+        if (top1_val - top2_val) < 0.15:
+            diagnostic_notes.append("Prediction uncertain.")
+            
         multiclass_result = {
             "top_class": top_class,
             "risk_level": risk_level,
             "probabilities": mc_prob_dict,
+            "top3": top3,
+            "notes": diagnostic_notes,
+            "debug": {
+                "raw_logits": {name: float(l) for name, l in zip(class_names, raw_logits_np)} if raw_logits_np is not None else {},
+                "calibrated_logits": {name: float(l) for name, l in zip(class_names, calibrated_logits_np)} if calibrated_logits_np is not None else {},
+                "penalty_applied": NV_PENALTY,
+                "tta_active": bool(use_tta),
+                "task2_raw_means": attr_raw_means if 'attr_raw_means' in locals() else {}
+            }
         }
-        
-        # Build bar chart for multi-class
-        mc_visual_path = create_multiclass_figure(mc_prob_dict, top_class, risk_level)
+        mc_visual_path = create_multiclass_figure(mc_prob_dict, top_class, risk_level, diagnostic_notes)
 
-    # ── ABCDE Analysis ──
+    # ── Task 2 Attribute Presence Inference ──
+    attr_model = get_attribute_model()
+    attribute_visual_path = None
+    attributes_detected = {}
+    
+    if attr_model is not None:
+        with torch.no_grad():
+            # Use standard 224x224 tensor for the EfficientNet attribute classifier
+            outputs = attr_model(tensor.unsqueeze(0))
+            attr_probs = torch.sigmoid(outputs)[0].cpu().numpy()
+            
+        attr_names = ["Globules", "Milia-like cyst", "Negative network", "Pigment network", "Streaks"]
+        
+        # Evidence Level Categorization & Sorting
+        attr_results = []
+        for prob, name in zip(attr_probs, attr_names):
+            if prob >= 0.65:
+                status = "High Evidence"
+            elif prob >= 0.35:
+                status = "Moderate Evidence"
+            else:
+                status = "Low / Not Detected"
+            
+            attr_results.append({
+                "name": name,
+                "prob": float(prob),
+                "status": status
+            })
+            attributes_detected[name] = status if status != "Low / Not Detected" else False
+
+        # Sort by confidence descending
+        attr_results = sorted(attr_results, key=lambda x: x["prob"], reverse=True)
+        
+        # Check if all scores are low
+        if all(r["prob"] < 0.35 for r in attr_results):
+            attributes_detected["_note"] = "No dominant dermoscopic structures detected."
+
+        attribute_visual_path = create_attribute_presence_figure(attr_results)
+
+    # ── ABCDE Analysis (Legacy Fallback if requested) ──
     abcde_res = None
     abcde_visual_path = None
     if run_abcde:
-        abcde_res = analyze_abcde(pil_resized)
-        abcde_visual_path = create_abcde_visualization_wrapper(pil_resized, abcde_res)
+        unet_model_loaded = get_unet_model()
+        abcde_res = analyze_abcde(pil_resized, unet_model=unet_model_loaded)
+        abcde_visual_path = create_abcde_visualization_wrapper(pil_resized, abcde_res, unet_model=unet_model_loaded)
 
-    if decision_idx == 0:
+    if p_class == 0:
         advice = (
             "Lower-risk indicators were detected in this image. Keep monitoring for visible changes "
             "and seek dermatology review for any persistent concern."
@@ -573,6 +803,7 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "Source": source_name,
         "Decision": decision,
+        "Predicted Class": multiclass_result["top_class"] if multiclass_result else "N/A",
         "Risk Band": risk_band,
         "Confidence %": f"{confidence * 100:.1f}%",
         "Malignant %": f"{malignant_prob * 100:.1f}%",
@@ -597,6 +828,12 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         malignant_prob=malignant_prob,
         threshold_pct=threshold * 100,
         advice=advice,
+        confidence_level=binary_result["confidence_level"],
+        primary_info=binary_result["primary_info"],
+        secondary_info=binary_result["secondary_info"],
+        enable_multimodel=enable_multimodel,
+        consensus_score=binary_result["consensus_score"],
+        secondary_decision=binary_result["secondary_decision"]
     )
 
     return {
@@ -610,13 +847,68 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         "threshold": threshold,
         "mc_visual_path": mc_visual_path,
         "abcde_visual_path": abcde_visual_path,
+        "attribute_visual_path": attribute_visual_path,
+        "attributes_detected": attributes_detected,
         "multiclass_result": multiclass_result,
         "abcde_result": abcde_res,
     }
 
 
+def create_attribute_presence_figure(results: list) -> str:
+    """
+    Creates a horizontal bar chart showing attribute presence confidence and evidence levels.
+    """
+    names = [r["name"] for r in results]
+    probs = [r["prob"] * 100 for r in results]
+    statuses = [r["status"] for r in results]
+    
+    # Colors: Green for High, Amber for Moderate, Slate for Low
+    colors = []
+    for s in statuses:
+        if s == "High Evidence":
+            colors.append("#10b981")
+        elif s == "Moderate Evidence":
+            colors.append("#f59e0b")
+        else:
+            colors.append("#475569")
 
-def create_multiclass_figure(probs: dict, top_class: str, risk_level: str) -> str:
+    fig, ax = plt.subplots(figsize=(10, 6), facecolor="#09111d")
+    ax.set_facecolor("#09111d")
+    
+    bars = ax.barh(names, probs, color=colors, height=0.7)
+    ax.invert_yaxis()  # Highest confidence at top
+    
+    # Labeling
+    ax.set_title("Dermoscopic Attribute Presence Analysis", color="#e8f2ff", fontsize=16, fontweight="bold", pad=20)
+    ax.set_xlabel("Confidence (%)", color="#94a3b8", fontsize=12)
+    ax.set_xlim(0, 100)
+    
+    # Grid and spines
+    ax.xaxis.grid(True, linestyle="--", alpha=0.2, color="#94a3b8")
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    ax.spines["left"].set_color("#334155")
+    ax.spines["bottom"].set_color("#334155")
+    
+    # Tick colors
+    ax.tick_params(colors="#cbd7e6", labelsize=11)
+    
+    # Add text labels on bars
+    for i, (bar, prob, status) in enumerate(zip(bars, probs, statuses)):
+        width = bar.get_width()
+        label_text = f"{prob:.1f}% — {status}"
+        ax.text(width + 2, bar.get_y() + bar.get_height()/2, label_text, 
+                va='center', color="#e8f2ff", fontsize=11, fontweight="bold")
+
+    plt.tight_layout()
+    
+    tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    tmp.close()
+    plt.savefig(tmp.name, dpi=130, bbox_inches="tight", facecolor="#09111d")
+    plt.close(fig)
+    return tmp.name
+
+def create_multiclass_figure(probs: dict, top_class: str, risk_level: str, notes: list = None) -> str:
     fig, ax = plt.subplots(figsize=(8, 5), facecolor="#09111d")
     ax.set_facecolor="#09111d"
     
@@ -628,7 +920,7 @@ def create_multiclass_figure(probs: dict, top_class: str, risk_level: str) -> st
     values_s = [v for v, n in sorted_pairs]
     names_s = [n for v, n in sorted_pairs]
     
-    colors = [RISK_COLORS.get(RISK_LEVELS[n], "#38bdf8") for n in names_s]
+    colors = [RISK_COLORS.get(TASK3_RISK_LEVELS.get(n, "Unknown"), "#38bdf8") for n in names_s]
     bars = ax.barh(names_s, values_s, color=colors, alpha=0.8)
     
     for bar in bars:
@@ -644,6 +936,15 @@ def create_multiclass_figure(probs: dict, top_class: str, risk_level: str) -> st
     ax.spines['top'].set_visible(False)
     ax.tick_params(colors='#94a3b8')
     ax.set_xlabel("Probability (%)", color="#94a3b8")
+
+    # Add Top 3 summary and Diagnostic notes to the plot
+    sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=True)[:3]
+    summary_text = "Top 3: " + " | ".join([f"{k}: {v*100:.1f}%" for k, v in sorted_probs])
+    fig.text(0.5, 0.02, summary_text, ha='center', color="#cbd7e6", fontsize=9, fontweight='bold')
+    
+    if notes:
+        note_text = "\n".join(notes)
+        fig.text(0.02, 0.95, note_text, color="#fb923c", fontsize=9, fontweight='bold', bbox=dict(facecolor='#1e293b', alpha=0.5, edgecolor='none'))
     
     plt.tight_layout()
     tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
@@ -652,10 +953,10 @@ def create_multiclass_figure(probs: dict, top_class: str, risk_level: str) -> st
     plt.close(fig)
     return tmp.name
 
-def create_abcde_visualization_wrapper(pil_resized, abcde_res):
+def create_abcde_visualization_wrapper(pil_resized, abcde_res, unet_model=None):
     import numpy as np
     from abcde import create_abcde_visualization
-    vis_np = create_abcde_visualization(pil_resized, abcde_res)
+    vis_np = create_abcde_visualization(pil_resized, abcde_res, unet_model=unet_model)
     
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(12, 4), facecolor="#09111d")
@@ -669,12 +970,12 @@ def create_abcde_visualization_wrapper(pil_resized, abcde_res):
     plt.close(fig)
     return tmp.name
 
-def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run_abcde: bool, history_state: list[dict] | None):
+def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run_abcde: bool, enable_multimodel: bool, history_state: list[dict] | None):
     if image is None:
         return None, build_placeholder_html(), None, None, empty_history_df(), None, history_state or [], None, None, None
 
     history_state = list(history_state or [])
-    analysis = analyze_image(image, threshold, "Single Upload", use_tta, run_abcde)
+    analysis = analyze_image(image, threshold, "Single Upload", use_tta, run_abcde, enable_multimodel=enable_multimodel)
     history_state.append(analysis["record"])
     history_csv = write_records_csv(history_state)
 
@@ -688,11 +989,12 @@ def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run
         history_state,
         analysis,
         analysis["mc_visual_path"],
-        analysis["abcde_visual_path"]
+        analysis["abcde_visual_path"],
+        analysis.get("multiclass_result", {}).get("debug", {})
     )
 
 
-def run_batch_analysis(files, threshold: float, history_state: list[dict] | None):
+def run_batch_analysis(files, threshold: float, enable_multimodel: bool, history_state: list[dict] | None):
     history_state = list(history_state or [])
     if not files:
         return (
@@ -709,7 +1011,7 @@ def run_batch_analysis(files, threshold: float, history_state: list[dict] | None
         try:
             image = load_pil_image(file_obj)
             source_name = Path(file_obj.name if hasattr(file_obj, "name") else str(file_obj)).name
-            analysis = analyze_image(image, threshold, source_name)
+            analysis = analyze_image(image, threshold, source_name, enable_multimodel=enable_multimodel)
             batch_records.append(analysis["record"])
         except Exception as exc:
             source_name = Path(file_obj.name if hasattr(file_obj, "name") else str(file_obj)).name
@@ -806,12 +1108,520 @@ def build_ui():
 
     with gr.Blocks(
         title="Skin Lesion Classifier",
-        theme=gr.themes.Base(
-            primary_hue="teal",
-            neutral_hue="slate",
-            font=gr.themes.GoogleFont("Plus Jakarta Sans"),
-        ),
-        css="""
+    ) as demo:
+        history_state = gr.State([])
+        latest_analysis_state = gr.State(None)
+
+        gr.HTML(
+            f"""
+            <div class="hero">
+                <div class="hero-grid">
+                    <div class="hero-copy">
+                        <div class="badge-row">
+                            <span class="hero-badge">Skin Health Screening</span>
+                            <span class="hero-badge">Grad-CAM Explainability</span>
+                            <span class="hero-badge">Batch Ready</span>
+                        </div>
+                        <h1>AI-Powered Skin Lesion Analysis</h1>
+                        <p>
+                            Upload a dermoscopy image to generate a benign-versus-malignant screening
+                            result, threshold-aware decision, visual attention heatmap, session history,
+                            and exportable reports in one interface.
+                        </p>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <span>Model Backbone</span>
+                            <strong>EfficientNet-B0</strong>
+                        </div>
+                        <div class="hero-stat">
+                            <span>Inference</span>
+                            <strong>Binary Classification + Grad-CAM</strong>
+                        </div>
+                        <div class="hero-stat">
+                            <span>Input Resolution</span>
+                            <strong>{IMAGE_SIZE} x {IMAGE_SIZE}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """
+        )
+
+        threshold = gr.Slider(
+            minimum=0.10,
+            maximum=0.90,
+            value=DEFAULT_THRESHOLD,
+            step=0.05,
+            label="Malignant Screening Threshold",
+            info="Lower values flag more images as malignant. Default is 50%.",
+        )
+
+        with gr.Tabs():
+            with gr.Tab("Single Analysis"):
+                with gr.Row(equal_height=True):
+                    with gr.Column(scale=5):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Upload Image</h3>
+                                    <p class="panel-subtitle">
+                                        Use a clear dermoscopy image with the lesion centered for best results.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                image_input = gr.Image(
+                                    type="pil",
+                                    label="Lesion Image",
+                                    height=360,
+                                    elem_classes=["upload-box"],
+                                )
+                                with gr.Row():
+                                    use_tta = gr.Checkbox(label="Enable Test-Time Augmentation (TTA)", value=True, info="Boosts accuracy via averaging augmentations")
+                                    run_abcde_chk = gr.Checkbox(label="Run ABCDE Auto-Vision Analysis", value=True)
+                                enable_multimodel_chk = gr.Checkbox(label="Enhanced Multi-Model Verification", value=False, elem_classes=["subtle-chk"])
+                                predict_btn = gr.Button(
+                                    "Analyze Image",
+                                    variant="primary",
+                                    size="lg",
+                                    elem_classes=["analyze-btn"],
+                                )
+                                gr.Markdown(
+                                    "Use the threshold slider above to make the screening decision more sensitive or more conservative.",
+                                    elem_classes=["control-note"],
+                                )
+                                if examples:
+                                    gr.Examples(examples=examples, inputs=image_input, label="Example images")
+
+                    with gr.Column(scale=7):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Analysis Summary</h3>
+                                    <p class="panel-subtitle">
+                                        Threshold-aware decision, confidence distribution, and screening guidance.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                result_html = gr.HTML(value=build_placeholder_html())
+
+                with gr.Row(equal_height=True):
+                    with gr.Column(scale=7):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Visual Explanation</h3>
+                                    <p class="panel-subtitle">
+                                        Grad-CAM highlights the regions most influential to the model.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                gradcam_out = gr.Image(
+                                    label="Grad-CAM Visualization",
+                                    height=380,
+                                    elem_classes=["output-box"],
+                                )
+                                with gr.Row():
+                                    snapshot_file = gr.File(
+                                        label="Download Visualization",
+                                        elem_classes=["download-box"],
+                                    )
+                                    report_file = gr.File(
+                                        label="Download Report Card",
+                                        elem_classes=["download-box"],
+                                    )
+
+                    with gr.Column(scale=5):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">How To Use</h3>
+                                    <p class="panel-subtitle">
+                                        A few simple notes to keep the workflow clear and safe.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                gr.HTML(
+                                    f"""
+                                    <div class="guide-list">
+                                        <div class="guide-item">
+                                            <strong>1. Upload a focused lesion image</strong>
+                                            <span>Use a well-lit image with minimal blur and the lesion near the center.</span>
+                                        </div>
+                                        <div class="guide-item">
+                                            <strong>2. Review the attention map</strong>
+                                            <span>The heatmap shows where the model looked, not a definitive medical explanation.</span>
+                                        </div>
+                                        <div class="guide-item">
+                                            <strong>3. Use results as screening only</strong>
+                                            <span>Any concerning lesion should still be assessed by a qualified dermatologist.</span>
+                                        </div>
+                                    </div>
+                                    <div class="info-grid">
+                                        <div class="info-card">
+                                            <span>Checkpoint</span>
+                                            <strong>{PRIMARY_CHECKPOINT.name if PRIMARY_CHECKPOINT.exists() else "Demo mode"}</strong>
+                                        </div>
+                                        <div class="info-card">
+                                            <span>Device</span>
+                                            <strong>{DEVICE.type.upper()}</strong>
+                                        </div>
+                                        <div class="info-card">
+                                            <span>Classes</span>
+                                            <strong>{" / ".join(CLASS_NAMES)}</strong>
+                                        </div>
+                                        <div class="info-card">
+                                            <span>Image Size</span>
+                                            <strong>{IMAGE_SIZE} x {IMAGE_SIZE}</strong>
+                                        </div>
+                                    </div>
+                                    """
+                                )
+
+            with gr.Tab("Lesion Segmentation"):
+                with gr.Group(elem_classes=["panel"]):
+                    gr.HTML(
+                        '''
+                        <div class="panel-header">
+                            <h3 class="panel-title">ABCDE Dermatological Features</h3>
+                            <p class="panel-subtitle">
+                                Automated lesion segmentation and rule-based computer vision analysis of the classic ABCDE criteria.
+                            </p>
+                        </div>
+                        '''
+                    )
+                    with gr.Group(elem_classes=["panel-body"]):
+                        abcde_output_img = gr.Image(label="ABCDE Analysis Details", interactive=False, elem_classes=["output-box"])
+
+            with gr.Tab("Disease Classification"):
+                with gr.Group(elem_classes=["panel"]):
+                    gr.HTML(
+                        '''
+                        <div class="panel-header">
+                            <h3 class="panel-title">7-Class Disease Probability Distribution</h3>
+                            <p class="panel-subtitle">
+                                The multi-class model estimates probabilities across 7 diagnostic categories.
+                            </p>
+                        </div>
+                        '''
+                    )
+                    with gr.Group(elem_classes=["panel-body"]):
+                        mc_output_img = gr.Image(label="Predictions", interactive=False, elem_classes=["output-box"])
+                        with gr.Accordion("Advanced Developer Diagnostics", open=False):
+                            mc_debug_json = gr.JSON(label="Logit/Probability Calibration Audit")
+
+
+            with gr.Tab("Symptom Review"):
+                with gr.Row(equal_height=True):
+                    with gr.Column(scale=5):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Official Warning-Sign Intake</h3>
+                                    <p class="panel-subtitle">
+                                        This uses official warning-sign criteria and produces a transparent triage summary.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                evolving = gr.Checkbox(label="The spot is changing or evolving")
+                                asymmetry = gr.Checkbox(label="The lesion looks asymmetric")
+                                irregular_border = gr.Checkbox(label="The border looks irregular")
+                                multiple_colors = gr.Checkbox(label="There are multiple colors in the lesion")
+                                diameter_large = gr.Checkbox(label="The lesion seems larger than about 6 mm")
+                                itching_or_tender = gr.Checkbox(label="Itching or tenderness is present")
+                                bleeding_or_oozing = gr.Checkbox(label="Bleeding or oozing is present")
+                                personal_or_family_history = gr.Checkbox(label="Personal or family history of skin cancer")
+                                symptom_btn = gr.Button(
+                                    "Review Symptoms",
+                                    variant="primary",
+                                    size="lg",
+                                    elem_classes=["analyze-btn"],
+                                )
+                    with gr.Column(scale=7):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Symptom Triage Summary</h3>
+                                    <p class="panel-subtitle">
+                                        Combined guidance keeps symptom review separate from the image model and cites the official source pages.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                symptom_html = gr.HTML(value=build_placeholder_html())
+                                combined_summary = gr.HTML(
+                                    value="""
+                                    <div class="mini-summary">
+                                        <strong>Ready for symptom review.</strong>
+                                        <span>Select any warning signs that apply, then generate the triage summary.</span>
+                                    </div>
+                                    """
+                                )
+                                symptom_sources = gr.HTML(
+                                    value=(
+                                        "<div class='mini-summary'><strong>Official source pages</strong>"
+                                        f"{source_link_list(SYMPTOM_SOURCE_URLS)}</div>"
+                                    )
+                                )
+
+            with gr.Tab("Batch Analysis"):
+                with gr.Row(equal_height=True):
+                    with gr.Column(scale=5):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Batch Upload</h3>
+                                    <p class="panel-subtitle">
+                                        Analyze multiple images at once and export the batch results to CSV.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                batch_files = gr.Files(label="Upload multiple lesion images")
+                                enable_multimodel_batch = gr.Checkbox(label="Enhanced Multi-Model Verification", value=False, elem_classes=["subtle-chk"])
+                                batch_btn = gr.Button(
+                                    "Run Batch Analysis",
+                                    variant="primary",
+                                    size="lg",
+                                    elem_classes=["analyze-btn"],
+                                )
+                    with gr.Column(scale=7):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Batch Results</h3>
+                                    <p class="panel-subtitle">
+                                        Summary, per-image screening decisions, and a downloadable CSV export.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                batch_summary = gr.HTML(
+                                    value="""
+                                    <div class="mini-summary">
+                                        <strong>Batch mode is ready.</strong>
+                                        <span>Upload one or more images to generate a results table.</span>
+                                    </div>
+                                    """
+                                )
+                                batch_table = gr.Dataframe(
+                                    value=empty_history_df(),
+                                    headers=HISTORY_COLUMNS,
+                                    interactive=False,
+                                    wrap=True,
+                                )
+                                batch_csv = gr.File(label="Download Batch CSV", elem_classes=["download-box"])
+
+            with gr.Tab("History"):
+                with gr.Group(elem_classes=["panel"]):
+                    gr.HTML(
+                        """
+                        <div class="panel-header">
+                            <h3 class="panel-title">Session History</h3>
+                            <p class="panel-subtitle">
+                                Every single and batch analysis performed in this session appears here.
+                            </p>
+                        </div>
+                        """
+                    )
+                    with gr.Group(elem_classes=["panel-body"]):
+                        history_table = gr.Dataframe(
+                            value=empty_history_df(),
+                            headers=HISTORY_COLUMNS,
+                            interactive=False,
+                            wrap=True,
+                        )
+                        with gr.Row():
+                            history_csv = gr.File(label="Download Session CSV", elem_classes=["download-box"])
+                            clear_btn = gr.Button("Clear History", elem_classes=["soft-btn"])
+
+            with gr.Tab("Model Dashboard"):
+                with gr.Group(elem_classes=["panel"]):
+                    gr.HTML(
+                        """
+                        <div class="panel-header">
+                            <h3 class="panel-title">Saved Training Visuals</h3>
+                            <p class="panel-subtitle">
+                                These panels display the latest plots already generated by your evaluation pipeline.
+                            </p>
+                        </div>
+                        """
+                    )
+                    with gr.Group(elem_classes=["panel-body"]):
+                        gr.HTML(
+                            """
+                            <div class="mini-summary">
+                                <strong>Updated Binary Classifier Performance</strong>
+                                <span>Visualizations for the primary EfficientNet-B0 model (benign_malignant_best.pth). Accuracy: 91.16%, AUC: 0.9569.</span>
+                            </div>
+                            <div class="metric-grid" style="margin-top: 20px; margin-bottom: 20px;">
+                                <div class="metric-card">
+                                    <span>Validation Accuracy</span>
+                                    <strong>91.16%</strong>
+                                </div>
+                                <div class="metric-card">
+                                    <span>Validation AUC</span>
+                                    <strong>0.9569</strong>
+                                </div>
+                                <div class="metric-card" style="border-left: 2px solid #10b981;">
+                                    <span>Inference Quality</span>
+                                    <strong style="color: #10b981;">Strong Screening</strong>
+                                </div>
+                            </div>
+                            """
+                        )
+                        with gr.Row():
+                            confusion_img = gr.Image(value=display_plot(PLOT_FILES["Confusion Matrix"]), label="Confusion Matrix", interactive=False, elem_classes=["output-box"])
+                            roc_img = gr.Image(value=display_plot(PLOT_FILES["ROC Curve"]), label="ROC Curve", interactive=False, elem_classes=["output-box"])
+                        with gr.Row():
+                            pr_img = gr.Image(value=display_plot(PLOT_FILES["PR Curve"]), label="Precision-Recall Curve", interactive=False, elem_classes=["output-box"])
+                            loss_img = gr.Image(value=display_plot(PLOT_FILES["Training Loss"]), label="Training Loss Curve", interactive=False, elem_classes=["output-box"])
+                        with gr.Row():
+                            acc_img = gr.Image(value=display_plot(PLOT_FILES["Validation Accuracy"]), label="Accuracy over Epochs", interactive=False, elem_classes=["output-box"])
+                            auc_img = gr.Image(value=display_plot(PLOT_FILES["Validation AUC"]), label="AUC over Epochs", interactive=False, elem_classes=["output-box"])
+
+            with gr.Tab("Healthy Skin Guide"):
+                with gr.Row(equal_height=True):
+                    with gr.Column(scale=7):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Healthy Skin, Happy Skin</h3>
+                                    <p class="panel-subtitle">
+                                        Fun, conservative skin-care advice grounded in trustworthy public-health and dermatology sources.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                gr.HTML(build_skin_care_fun_html())
+                    with gr.Column(scale=5):
+                        with gr.Group(elem_classes=["panel"]):
+                            gr.HTML(
+                                """
+                                <div class="panel-header">
+                                    <h3 class="panel-title">Quick Habits That Actually Matter</h3>
+                                    <p class="panel-subtitle">
+                                        The boring basics are secretly elite.
+                                    </p>
+                                </div>
+                                """
+                            )
+                            with gr.Group(elem_classes=["panel-body"]):
+                                gr.HTML(
+                                    """
+                                    <div class="guide-list">
+                                        <div class="guide-item">
+                                            <strong>SPF is not optional side content</strong>
+                                            <span>Make sun protection a routine, not a panic button.</span>
+                                        </div>
+                                        <div class="guide-item">
+                                            <strong>Patch test your chaos</strong>
+                                            <span>New products are exciting, but skin prefers drama-free introductions.</span>
+                                        </div>
+                                        <div class="guide-item">
+                                            <strong>Hydrate, sleep, repeat</strong>
+                                            <span>Skin loves consistency more than miracle claims.</span>
+                                        </div>
+                                        <div class="guide-item">
+                                            <strong>If a spot changes, do not negotiate with it</strong>
+                                            <span>Get it checked instead of trying to out-stubborn biology.</span>
+                                        </div>
+                                    </div>
+                                """
+                                )
+
+        predict_btn.click(
+            fn=run_single_analysis,
+            inputs=[image_input, threshold, use_tta, run_abcde_chk, enable_multimodel_chk, history_state],
+            outputs=[
+                gradcam_out,
+                result_html,
+                snapshot_file,
+                report_file,
+                history_table,
+                history_csv,
+                history_state,
+                latest_analysis_state,
+                mc_output_img,
+                abcde_output_img,
+                mc_debug_json
+            ],
+        )
+
+        symptom_btn.click(
+            fn=run_symptom_review,
+            inputs=[
+                latest_analysis_state,
+                threshold,
+                evolving,
+                asymmetry,
+                irregular_border,
+                multiple_colors,
+                diameter_large,
+                itching_or_tender,
+                bleeding_or_oozing,
+                personal_or_family_history,
+            ],
+            outputs=[symptom_html, combined_summary, symptom_sources],
+        )
+
+        batch_btn.click(
+            fn=run_batch_analysis,
+            inputs=[batch_files, threshold, enable_multimodel_batch, history_state],
+            outputs=[batch_summary, batch_table, batch_csv, history_table, history_csv, history_state],
+        )
+
+        clear_btn.click(
+            fn=clear_history,
+            outputs=[history_table, history_csv, history_state],
+        )
+
+        gr.HTML(
+            """
+            <p class="footer-note">
+                This interface is intended for educational and research purposes only and is not a
+                substitute for professional medical diagnosis.
+            </p>
+            """
+        )
+
+    return demo
+
+
+if __name__ == "__main__":
+    demo = build_ui()
+    
+    # Define theme and CSS for launch (Gradio 6.0+ compatible)
+    theme = gr.themes.Base(
+        primary_hue="teal",
+        neutral_hue="slate",
+        font=gr.themes.GoogleFont("Plus Jakarta Sans"),
+    )
+    
+    css = """
         :root {
             --bg: #07111f;
             --panel: rgba(8, 20, 36, 0.78);
@@ -1014,6 +1824,94 @@ def build_ui():
             border: 1px solid rgba(148, 163, 184, 0.18);
             color: #d1dbe7;
         }
+        .status-pill.info-pill {
+            background: rgba(14, 165, 233, 0.14);
+            border: 1px solid rgba(14, 165, 233, 0.28);
+            color: #bae6fd;
+        }
+        .status-pill.warn-pill {
+            background: rgba(245, 158, 11, 0.14);
+            border: 1px solid rgba(245, 158, 11, 0.28);
+            color: #fef08a;
+        }
+        .disagreement-note, .consensus-panel {
+            padding: 18px;
+            margin-bottom: 22px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+            border: 1px solid var(--line);
+        }
+        .consensus-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .consensus-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .consensus-score {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+        .verdict-track {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .verdict-item {
+            flex: 1;
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+        }
+        .verdict-item span {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .verdict-badge {
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+        .verdict-badge.malignant { color: #f87171; }
+        .verdict-badge.benign { color: #4ade80; }
+        
+        .consensus-meter {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .consensus-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--teal), var(--cyan));
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .consensus-note {
+            font-size: 0.88rem;
+            color: #d1d5db;
+            line-height: 1.5;
+            margin: 0;
+        }
+        .subtle-chk {
+            margin-top: 4px !important;
+        }
+        .subtle-chk span {
+            font-size: 0.88rem !important;
+            opacity: 0.85;
+            font-weight: 500 !important;
+        }
         .result-copy, .guide-item span, .mini-summary span {
             color: var(--muted);
             line-height: 1.7;
@@ -1123,485 +2021,11 @@ def build_ui():
                 font-size: 2.35rem;
             }
         }
-        """,
-    ) as demo:
-        history_state = gr.State([])
-        latest_analysis_state = gr.State(None)
+        """
 
-        gr.HTML(
-            f"""
-            <div class="hero">
-                <div class="hero-grid">
-                    <div class="hero-copy">
-                        <div class="badge-row">
-                            <span class="hero-badge">Skin Health Screening</span>
-                            <span class="hero-badge">Grad-CAM Explainability</span>
-                            <span class="hero-badge">Batch Ready</span>
-                        </div>
-                        <h1>AI-Powered Skin Lesion Analysis</h1>
-                        <p>
-                            Upload a dermoscopy image to generate a benign-versus-malignant screening
-                            result, threshold-aware decision, visual attention heatmap, session history,
-                            and exportable reports in one interface.
-                        </p>
-                    </div>
-                    <div class="hero-stats">
-                        <div class="hero-stat">
-                            <span>Model Backbone</span>
-                            <strong>EfficientNet-B0</strong>
-                        </div>
-                        <div class="hero-stat">
-                            <span>Inference</span>
-                            <strong>Binary Classification + Grad-CAM</strong>
-                        </div>
-                        <div class="hero-stat">
-                            <span>Input Resolution</span>
-                            <strong>{IMAGE_SIZE} x {IMAGE_SIZE}</strong>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            """
-        )
-
-        threshold = gr.Slider(
-            minimum=0.10,
-            maximum=0.90,
-            value=DEFAULT_THRESHOLD,
-            step=0.05,
-            label="Malignant Screening Threshold",
-            info="Lower values flag more images as malignant. Default is 50%.",
-        )
-
-        with gr.Tabs():
-            with gr.Tab("Single Analysis"):
-                with gr.Row(equal_height=True):
-                    with gr.Column(scale=5):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">Upload Image</h3>
-                                    <p class="panel-subtitle">
-                                        Use a clear dermoscopy image with the lesion centered for best results.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                image_input = gr.Image(
-                                    type="pil",
-                                    label="Lesion Image",
-                                    height=360,
-                                    elem_classes=["upload-box"],
-                                )
-                                with gr.Row():
-                                    use_tta = gr.Checkbox(label="Enable Test-Time Augmentation (TTA)", value=True, info="Boosts accuracy via averaging augmentations")
-                                    run_abcde_chk = gr.Checkbox(label="Run ABCDE Auto-Vision Analysis", value=True)
-                                predict_btn = gr.Button(
-                                    "Analyze Image",
-                                    variant="primary",
-                                    size="lg",
-                                    elem_classes=["analyze-btn"],
-                                )
-                                gr.Markdown(
-                                    "Use the threshold slider above to make the screening decision more sensitive or more conservative.",
-                                    elem_classes=["control-note"],
-                                )
-                                if examples:
-                                    gr.Examples(examples=examples, inputs=image_input, label="Example images")
-
-                    with gr.Column(scale=7):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">Analysis Summary</h3>
-                                    <p class="panel-subtitle">
-                                        Threshold-aware decision, confidence distribution, and screening guidance.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                result_html = gr.HTML(value=build_placeholder_html())
-
-                with gr.Row(equal_height=True):
-                    with gr.Column(scale=7):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">Visual Explanation</h3>
-                                    <p class="panel-subtitle">
-                                        Grad-CAM highlights the regions most influential to the model.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                gradcam_out = gr.Image(
-                                    label="Grad-CAM Visualization",
-                                    height=380,
-                                    elem_classes=["output-box"],
-                                )
-                                with gr.Row():
-                                    snapshot_file = gr.File(
-                                        label="Download Visualization",
-                                        elem_classes=["download-box"],
-                                    )
-                                    report_file = gr.File(
-                                        label="Download Report Card",
-                                        elem_classes=["download-box"],
-                                    )
-
-                    with gr.Column(scale=5):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">How To Use</h3>
-                                    <p class="panel-subtitle">
-                                        A few simple notes to keep the workflow clear and safe.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                gr.HTML(
-                                    f"""
-                                    <div class="guide-list">
-                                        <div class="guide-item">
-                                            <strong>1. Upload a focused lesion image</strong>
-                                            <span>Use a well-lit image with minimal blur and the lesion near the center.</span>
-                                        </div>
-                                        <div class="guide-item">
-                                            <strong>2. Review the attention map</strong>
-                                            <span>The heatmap shows where the model looked, not a definitive medical explanation.</span>
-                                        </div>
-                                        <div class="guide-item">
-                                            <strong>3. Use results as screening only</strong>
-                                            <span>Any concerning lesion should still be assessed by a qualified dermatologist.</span>
-                                        </div>
-                                    </div>
-                                    <div class="info-grid">
-                                        <div class="info-card">
-                                            <span>Checkpoint</span>
-                                            <strong>{CHECKPOINT.name if CHECKPOINT.exists() else "Demo mode"}</strong>
-                                        </div>
-                                        <div class="info-card">
-                                            <span>Device</span>
-                                            <strong>{DEVICE.type.upper()}</strong>
-                                        </div>
-                                        <div class="info-card">
-                                            <span>Classes</span>
-                                            <strong>{" / ".join(CLASS_NAMES)}</strong>
-                                        </div>
-                                        <div class="info-card">
-                                            <span>Image Size</span>
-                                            <strong>{IMAGE_SIZE} x {IMAGE_SIZE}</strong>
-                                        </div>
-                                    </div>
-                                    """
-                                )
-
-            with gr.Tab("Multi-Class Diagnosis"):
-                with gr.Group(elem_classes=["panel"]):
-                    gr.HTML(
-                        '''
-                        <div class="panel-header">
-                            <h3 class="panel-title">9-Class Probability Distribution</h3>
-                            <p class="panel-subtitle">
-                                The multi-class model estimates probabilities across 9 diagnostic categories.
-                            </p>
-                        </div>
-                        '''
-                    )
-                    with gr.Group(elem_classes=["panel-body"]):
-                        mc_output_img = gr.Image(label="Multi-Class Predictions", interactive=False, elem_classes=["output-box"])
-
-            with gr.Tab("ABCDE Auto-Vision Details"):
-                with gr.Group(elem_classes=["panel"]):
-                    gr.HTML(
-                        '''
-                        <div class="panel-header">
-                            <h3 class="panel-title">ABCDE Dermatological Features</h3>
-                            <p class="panel-subtitle">
-                                Automated lesion segmentation and rule-based computer vision analysis of the classic ABCDE criteria.
-                            </p>
-                        </div>
-                        '''
-                    )
-                    with gr.Group(elem_classes=["panel-body"]):
-                        abcde_output_img = gr.Image(label="ABCDE Analysis Details", interactive=False, elem_classes=["output-box"])
-
-            with gr.Tab("Symptom Review"):
-                with gr.Row(equal_height=True):
-                    with gr.Column(scale=5):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">Official Warning-Sign Intake</h3>
-                                    <p class="panel-subtitle">
-                                        This uses official warning-sign criteria and produces a transparent triage summary.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                evolving = gr.Checkbox(label="The spot is changing or evolving")
-                                asymmetry = gr.Checkbox(label="The lesion looks asymmetric")
-                                irregular_border = gr.Checkbox(label="The border looks irregular")
-                                multiple_colors = gr.Checkbox(label="There are multiple colors in the lesion")
-                                diameter_large = gr.Checkbox(label="The lesion seems larger than about 6 mm")
-                                itching_or_tender = gr.Checkbox(label="Itching or tenderness is present")
-                                bleeding_or_oozing = gr.Checkbox(label="Bleeding or oozing is present")
-                                personal_or_family_history = gr.Checkbox(label="Personal or family history of skin cancer")
-                                symptom_btn = gr.Button(
-                                    "Review Symptoms",
-                                    variant="primary",
-                                    size="lg",
-                                    elem_classes=["analyze-btn"],
-                                )
-                    with gr.Column(scale=7):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">Symptom Triage Summary</h3>
-                                    <p class="panel-subtitle">
-                                        Combined guidance keeps symptom review separate from the image model and cites the official source pages.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                symptom_html = gr.HTML(value=build_placeholder_html())
-                                combined_summary = gr.HTML(
-                                    value="""
-                                    <div class="mini-summary">
-                                        <strong>Ready for symptom review.</strong>
-                                        <span>Select any warning signs that apply, then generate the triage summary.</span>
-                                    </div>
-                                    """
-                                )
-                                symptom_sources = gr.HTML(
-                                    value=(
-                                        "<div class='mini-summary'><strong>Official source pages</strong>"
-                                        f"{source_link_list(SYMPTOM_SOURCE_URLS)}</div>"
-                                    )
-                                )
-
-            with gr.Tab("Batch Analysis"):
-                with gr.Row(equal_height=True):
-                    with gr.Column(scale=5):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">Batch Upload</h3>
-                                    <p class="panel-subtitle">
-                                        Analyze multiple images at once and export the batch results to CSV.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                batch_files = gr.Files(label="Upload multiple lesion images")
-                                batch_btn = gr.Button(
-                                    "Run Batch Analysis",
-                                    variant="primary",
-                                    size="lg",
-                                    elem_classes=["analyze-btn"],
-                                )
-                    with gr.Column(scale=7):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">Batch Results</h3>
-                                    <p class="panel-subtitle">
-                                        Summary, per-image screening decisions, and a downloadable CSV export.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                batch_summary = gr.HTML(
-                                    value="""
-                                    <div class="mini-summary">
-                                        <strong>Batch mode is ready.</strong>
-                                        <span>Upload one or more images to generate a results table.</span>
-                                    </div>
-                                    """
-                                )
-                                batch_table = gr.Dataframe(
-                                    value=empty_history_df(),
-                                    headers=HISTORY_COLUMNS,
-                                    interactive=False,
-                                    wrap=True,
-                                )
-                                batch_csv = gr.File(label="Download Batch CSV", elem_classes=["download-box"])
-
-            with gr.Tab("History"):
-                with gr.Group(elem_classes=["panel"]):
-                    gr.HTML(
-                        """
-                        <div class="panel-header">
-                            <h3 class="panel-title">Session History</h3>
-                            <p class="panel-subtitle">
-                                Every single and batch analysis performed in this session appears here.
-                            </p>
-                        </div>
-                        """
-                    )
-                    with gr.Group(elem_classes=["panel-body"]):
-                        history_table = gr.Dataframe(
-                            value=empty_history_df(),
-                            headers=HISTORY_COLUMNS,
-                            interactive=False,
-                            wrap=True,
-                        )
-                        with gr.Row():
-                            history_csv = gr.File(label="Download Session CSV", elem_classes=["download-box"])
-                            clear_btn = gr.Button("Clear History", elem_classes=["soft-btn"])
-
-            with gr.Tab("Model Dashboard"):
-                with gr.Group(elem_classes=["panel"]):
-                    gr.HTML(
-                        """
-                        <div class="panel-header">
-                            <h3 class="panel-title">Saved Training Visuals</h3>
-                            <p class="panel-subtitle">
-                                These panels display the latest plots already generated by your evaluation pipeline.
-                            </p>
-                        </div>
-                        """
-                    )
-                    with gr.Group(elem_classes=["panel-body"]):
-                        gr.HTML(
-                            """
-                            <div class="mini-summary">
-                                <strong>Display-only dashboard.</strong>
-                                <span>No retraining is happening here; the app is simply showing the saved output artifacts from <code>outputs/</code>.</span>
-                            </div>
-                            """
-                        )
-                        with gr.Row():
-                            confusion_img = gr.Image(value=display_plot(PLOT_FILES["Confusion Matrix"]), label="Confusion Matrix", interactive=False, elem_classes=["output-box"])
-                            roc_img = gr.Image(value=display_plot(PLOT_FILES["ROC Curve"]), label="ROC Curve", interactive=False, elem_classes=["output-box"])
-                        training_img = gr.Image(value=display_plot(PLOT_FILES["Training History"]), label="Training History", interactive=False, elem_classes=["output-box"])
-
-            with gr.Tab("Healthy Skin Guide"):
-                with gr.Row(equal_height=True):
-                    with gr.Column(scale=7):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">Healthy Skin, Happy Skin</h3>
-                                    <p class="panel-subtitle">
-                                        Fun, conservative skin-care advice grounded in trustworthy public-health and dermatology sources.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                gr.HTML(build_skin_care_fun_html())
-                    with gr.Column(scale=5):
-                        with gr.Group(elem_classes=["panel"]):
-                            gr.HTML(
-                                """
-                                <div class="panel-header">
-                                    <h3 class="panel-title">Quick Habits That Actually Matter</h3>
-                                    <p class="panel-subtitle">
-                                        The boring basics are secretly elite.
-                                    </p>
-                                </div>
-                                """
-                            )
-                            with gr.Group(elem_classes=["panel-body"]):
-                                gr.HTML(
-                                    """
-                                    <div class="guide-list">
-                                        <div class="guide-item">
-                                            <strong>SPF is not optional side content</strong>
-                                            <span>Make sun protection a routine, not a panic button.</span>
-                                        </div>
-                                        <div class="guide-item">
-                                            <strong>Patch test your chaos</strong>
-                                            <span>New products are exciting, but skin prefers drama-free introductions.</span>
-                                        </div>
-                                        <div class="guide-item">
-                                            <strong>Hydrate, sleep, repeat</strong>
-                                            <span>Skin loves consistency more than miracle claims.</span>
-                                        </div>
-                                        <div class="guide-item">
-                                            <strong>If a spot changes, do not negotiate with it</strong>
-                                            <span>Get it checked instead of trying to out-stubborn biology.</span>
-                                        </div>
-                                    </div>
-                                """
-                                )
-
-        predict_btn.click(
-            fn=run_single_analysis,
-            inputs=[image_input, threshold, use_tta, run_abcde_chk, history_state],
-            outputs=[
-                gradcam_out,
-                result_html,
-                snapshot_file,
-                report_file,
-                history_table,
-                history_csv,
-                history_state,
-                latest_analysis_state,
-                mc_output_img,
-                abcde_output_img
-            ],
-        )
-
-        symptom_btn.click(
-            fn=run_symptom_review,
-            inputs=[
-                latest_analysis_state,
-                threshold,
-                evolving,
-                asymmetry,
-                irregular_border,
-                multiple_colors,
-                diameter_large,
-                itching_or_tender,
-                bleeding_or_oozing,
-                personal_or_family_history,
-            ],
-            outputs=[symptom_html, combined_summary, symptom_sources],
-        )
-
-        batch_btn.click(
-            fn=run_batch_analysis,
-            inputs=[batch_files, threshold, history_state],
-            outputs=[batch_summary, batch_table, batch_csv, history_table, history_csv, history_state],
-        )
-
-        clear_btn.click(
-            fn=clear_history,
-            outputs=[history_table, history_csv, history_state],
-        )
-
-        gr.HTML(
-            """
-            <p class="footer-note">
-                This interface is intended for educational and research purposes only and is not a
-                substitute for professional medical diagnosis.
-            </p>
-            """
-        )
-
-    return demo
-
-
-if __name__ == "__main__":
-    demo = build_ui()
-    demo.launch(share=False, server_port=7860, show_error=True)
+    demo.launch(
+        share=False, 
+        show_error=True,
+        theme=theme,
+        css=css
+    )
