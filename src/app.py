@@ -363,15 +363,52 @@ def build_result_html(
     threshold_pct: float,
     advice: str,
     confidence_level: str = "High Confidence",
-    disagreement_note: str = "",
     primary_info: str = "HAM10000 EfficientNet-B0",
     secondary_info: str = "Legacy Model",
+    # Multi-Model specific params
+    enable_multimodel: bool = False,
+    consensus_score: float = 100.0,
+    secondary_decision: str = None,
 ) -> str:
     risk_class = "safe" if decision == "Benign" else "warn"
     subtitle = "Low Concern" if decision == "Benign" else "Review Recommended"
     
     conf_class = "info-pill" if confidence_level == "High Confidence" else "warn-pill"
-    disagreement_html = f"<div class='disagreement-note'>⚠️ {disagreement_note}</div>" if disagreement_note else ""
+    
+    consensus_html = ""
+    if enable_multimodel and secondary_decision:
+        p_color = "benign" if decision == "Benign" else "malignant"
+        s_color = "benign" if secondary_decision == "Benign" else "malignant"
+        
+        status_text = "Strong Consensus" if consensus_score > 85 else "Mixed Consensus"
+        consensus_note = (
+            "Both models are in strong agreement on the classification." 
+            if decision == secondary_decision and consensus_score > 85
+            else "Models show varying confidence levels. Manual review is prioritized."
+        )
+
+        consensus_html = f"""
+        <div class="consensus-panel">
+            <div class="consensus-header">
+                <span class="consensus-title">Multi-Model Verdict Consensus</span>
+                <span class="consensus-score">{status_text}: {consensus_score:.0f}%</span>
+            </div>
+            <div class="verdict-track">
+                <div class="verdict-item">
+                    <span>Primary Model</span>
+                    <strong class="verdict-badge {p_color}">{decision}</strong>
+                </div>
+                <div class="verdict-item">
+                    <span>Secondary Model</span>
+                    <strong class="verdict-badge {s_color}">{secondary_decision}</strong>
+                </div>
+            </div>
+            <div class="consensus-meter">
+                <div class="consensus-fill" style="width: {consensus_score}%"></div>
+            </div>
+            <p class="consensus-note">{consensus_note}</p>
+        </div>
+        """
 
     return f"""
     <div class="result-shell">
@@ -386,7 +423,7 @@ def build_result_html(
             </div>
         </div>
 
-        {disagreement_html}
+        {consensus_html}
 
         <p class="result-copy">
             This decision uses a malignant screening threshold of <strong>{threshold_pct:.0f}%</strong>.
@@ -540,20 +577,13 @@ def load_pil_image(file_obj) -> Image.Image:
     return Image.open(path).convert("RGB")
 
 
-def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tta: bool = False, run_abcde: bool = False) -> dict:
+def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tta: bool = False, run_abcde: bool = False, enable_multimodel: bool = False) -> dict:
     model = get_model()
     transform = get_transforms("val")
 
     pil_resized = image.resize((IMAGE_SIZE, IMAGE_SIZE)).convert("RGB")
     tensor = transform(pil_resized).to(DEVICE)
     
-    # Task 2 Preprocessing (192x192 as per training domain)
-    pil_192 = image.resize((192, 192)).convert("RGB")
-    from torchvision.transforms import functional as TF
-    from dataset import MEAN, STD
-    tensor_192 = TF.to_tensor(pil_192)
-    tensor_192 = TF.normalize(tensor_192, MEAN, STD).to(DEVICE)
-
     # ── Grad-CAM ──
     gradcam = GradCAM(model)
     heatmap, _, _ = gradcam.generate(tensor)
@@ -564,9 +594,9 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
 
     # ── Binary Inference ──
     p_model = get_model()
-    s_model = get_secondary_model()
+    s_model = get_secondary_model() if enable_multimodel else None
 
-    # Primary Inference (benign_malignant_best.pth)
+    # Primary Inference
     if use_tta:
         p_probs = predict_with_tta(p_model, pil_resized, DEVICE)
     else:
@@ -590,12 +620,13 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
     confidence = malignant_prob if p_class == 1 else benign_prob
     risk_band = resolve_risk_band(malignant_prob)
 
-    # Secondary Inference (best_model.pth - Confidence Check)
+    # Multi-Model Logic
     confidence_level = "High Confidence"
-    disagreement_note = ""
-    secondary_info = "Legacy Model (Not Available)"
+    secondary_decision = None
+    consensus_score = 100.0
+    secondary_info = "Not Active"
     
-    if s_model:
+    if enable_multimodel and s_model:
         secondary_info = "Legacy Ensemble Model"
         if use_tta:
             s_probs = predict_with_tta(s_model, pil_resized, DEVICE)
@@ -607,17 +638,25 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
                 else:
                     s_probs = torch.softmax(s_outputs, dim=1)[0].cpu().numpy()
         
-        # Consistent probabilistic comparison
         if len(s_probs) == 1:
             s_malignant_prob = float(s_probs[0])
         else:
             s_malignant_prob = float(s_probs[1])
             
         s_class = 1 if s_malignant_prob >= threshold else 0
+        secondary_decision = CLASS_NAMES[s_class]
+
+        # Calculate Consensus Score: based on probability delta
+        p_prob = malignant_prob
+        s_prob = s_malignant_prob
+        # Shift probabilities to be centered around 0.5 for relative alignment
+        delta = abs(p_prob - s_prob)
+        consensus_score = max(0, 100 * (1.0 - delta))
 
         if p_class != s_class:
-            confidence_level = "Moderate Confidence"
-            disagreement_note = "Secondary model disagreement detected"
+            confidence_level = "Mixed Consensus"
+        elif consensus_score < 80:
+            confidence_level = "Low Consensus"
 
     binary_result = {
         "decision": decision, 
@@ -627,9 +666,11 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         "threshold": threshold, 
         "risk_band": risk_band,
         "confidence_level": confidence_level,
-        "disagreement_note": disagreement_note,
         "primary_info": "HAM10000 EfficientNet-B0",
-        "secondary_info": secondary_info
+        "secondary_info": secondary_info,
+        "enable_multimodel": enable_multimodel,
+        "consensus_score": consensus_score,
+        "secondary_decision": secondary_decision
     }
 
     # ── Task 3 Multi-class Inference ──
@@ -788,9 +829,11 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         threshold_pct=threshold * 100,
         advice=advice,
         confidence_level=binary_result["confidence_level"],
-        disagreement_note=binary_result["disagreement_note"],
         primary_info=binary_result["primary_info"],
         secondary_info=binary_result["secondary_info"],
+        enable_multimodel=enable_multimodel,
+        consensus_score=binary_result["consensus_score"],
+        secondary_decision=binary_result["secondary_decision"]
     )
 
     return {
@@ -927,12 +970,12 @@ def create_abcde_visualization_wrapper(pil_resized, abcde_res, unet_model=None):
     plt.close(fig)
     return tmp.name
 
-def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run_abcde: bool, history_state: list[dict] | None):
+def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run_abcde: bool, enable_multimodel: bool, history_state: list[dict] | None):
     if image is None:
         return None, build_placeholder_html(), None, None, empty_history_df(), None, history_state or [], None, None, None
 
     history_state = list(history_state or [])
-    analysis = analyze_image(image, threshold, "Single Upload", use_tta, run_abcde)
+    analysis = analyze_image(image, threshold, "Single Upload", use_tta, run_abcde, enable_multimodel=enable_multimodel)
     history_state.append(analysis["record"])
     history_csv = write_records_csv(history_state)
 
@@ -951,7 +994,7 @@ def run_single_analysis(image: Image.Image, threshold: float, use_tta: bool, run
     )
 
 
-def run_batch_analysis(files, threshold: float, history_state: list[dict] | None):
+def run_batch_analysis(files, threshold: float, enable_multimodel: bool, history_state: list[dict] | None):
     history_state = list(history_state or [])
     if not files:
         return (
@@ -968,7 +1011,7 @@ def run_batch_analysis(files, threshold: float, history_state: list[dict] | None
         try:
             image = load_pil_image(file_obj)
             source_name = Path(file_obj.name if hasattr(file_obj, "name") else str(file_obj)).name
-            analysis = analyze_image(image, threshold, source_name)
+            analysis = analyze_image(image, threshold, source_name, enable_multimodel=enable_multimodel)
             batch_records.append(analysis["record"])
         except Exception as exc:
             source_name = Path(file_obj.name if hasattr(file_obj, "name") else str(file_obj)).name
@@ -1139,6 +1182,7 @@ def build_ui():
                                 with gr.Row():
                                     use_tta = gr.Checkbox(label="Enable Test-Time Augmentation (TTA)", value=True, info="Boosts accuracy via averaging augmentations")
                                     run_abcde_chk = gr.Checkbox(label="Run ABCDE Auto-Vision Analysis", value=True)
+                                enable_multimodel_chk = gr.Checkbox(label="Enhanced Multi-Model Verification", value=False, elem_classes=["subtle-chk"])
                                 predict_btn = gr.Button(
                                     "Analyze Image",
                                     variant="primary",
@@ -1353,6 +1397,7 @@ def build_ui():
                             )
                             with gr.Group(elem_classes=["panel-body"]):
                                 batch_files = gr.Files(label="Upload multiple lesion images")
+                                enable_multimodel_batch = gr.Checkbox(label="Enhanced Multi-Model Verification", value=False, elem_classes=["subtle-chk"])
                                 batch_btn = gr.Button(
                                     "Run Batch Analysis",
                                     variant="primary",
@@ -1510,7 +1555,7 @@ def build_ui():
 
         predict_btn.click(
             fn=run_single_analysis,
-            inputs=[image_input, threshold, use_tta, run_abcde_chk, history_state],
+            inputs=[image_input, threshold, use_tta, run_abcde_chk, enable_multimodel_chk, history_state],
             outputs=[
                 gradcam_out,
                 result_html,
@@ -1545,7 +1590,7 @@ def build_ui():
 
         batch_btn.click(
             fn=run_batch_analysis,
-            inputs=[batch_files, threshold, history_state],
+            inputs=[batch_files, threshold, enable_multimodel_batch, history_state],
             outputs=[batch_summary, batch_table, batch_csv, history_table, history_csv, history_state],
         )
 
@@ -1789,18 +1834,83 @@ if __name__ == "__main__":
             border: 1px solid rgba(245, 158, 11, 0.28);
             color: #fef08a;
         }
-        .disagreement-note {
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            border-radius: 12px;
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.25);
-            color: #fca5a5;
-            font-size: 0.95rem;
-            font-weight: 500;
+        .disagreement-note, .consensus-panel {
+            padding: 18px;
+            margin-bottom: 22px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+            border: 1px solid var(--line);
+        }
+        .consensus-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .consensus-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .consensus-score {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+        .verdict-track {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .verdict-item {
+            flex: 1;
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+        }
+        .verdict-item span {
+            display: block;
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .verdict-badge {
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+        .verdict-badge.malignant { color: #f87171; }
+        .verdict-badge.benign { color: #4ade80; }
+        
+        .consensus-meter {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .consensus-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--teal), var(--cyan));
+            transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .consensus-note {
+            font-size: 0.88rem;
+            color: #d1d5db;
+            line-height: 1.5;
+            margin: 0;
+        }
+        .subtle-chk {
+            margin-top: 4px !important;
+        }
+        .subtle-chk span {
+            font-size: 0.88rem !important;
+            opacity: 0.85;
+            font-weight: 500 !important;
         }
         .result-copy, .guide-item span, .mini-summary span {
             color: var(--muted);

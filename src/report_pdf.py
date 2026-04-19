@@ -145,6 +145,25 @@ def generate_report(
 
         risk_band = binary_result.get("risk_band", "N/A")
         pdf.add_key_value("Risk Band", risk_band)
+
+        if binary_result.get("enable_multimodel"):
+            pdf.ln(2)
+            pdf.set_font("Helvetica", "B", 10)
+            pdf.set_text_color(56, 189, 248)
+            pdf.cell(0, 7, "Multi-Model Consensus Update:")
+            pdf.ln(7)
+            pdf.set_font("Helvetica", "", 9)
+            pdf.set_text_color(40, 40, 40)
+            
+            secondary = binary_result.get("secondary_decision", "N/A")
+            score = binary_result.get("consensus_score", 100.0)
+            
+            pdf.set_x(15)
+            pdf.cell(0, 6, f"Secondary Verdict: {secondary}")
+            pdf.ln(6)
+            pdf.set_x(15)
+            pdf.cell(0, 6, f"Model Alignment Score: {score:.1f}%")
+            pdf.ln(6)
         pdf.ln(5)
 
     # ── Multi-class Classification ───────────────────────────────────────
