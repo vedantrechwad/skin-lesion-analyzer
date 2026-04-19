@@ -59,7 +59,7 @@ def predict_single(image_path: str, checkpoint: str, device: torch.device, show_
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict on a single image")
     parser.add_argument("--image",      required=True,                   help="Path to input image")
-    parser.add_argument("--checkpoint", default="outputs/best_model.pth", help="Model checkpoint")
+    parser.add_argument("--checkpoint", default="models/best_model.pth", help="Model checkpoint")
     parser.add_argument("--no-gradcam", action="store_true",             help="Skip Grad-CAM visualization")
     parser.add_argument("--save",       default=None,                    help="Save visualization to path")
     args = parser.parse_args()

@@ -213,7 +213,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Explain a prediction with Grad-CAM")
     parser.add_argument("--image",      required=True, help="Path to input image")
-    parser.add_argument("--checkpoint", default="outputs/best_model.pth")
+    parser.add_argument("--checkpoint", default="models/best_model.pth")
     parser.add_argument("--save",       default=None,  help="Save explanation image")
     args = parser.parse_args()
 

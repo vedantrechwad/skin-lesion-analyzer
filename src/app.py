@@ -31,17 +31,21 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 IMAGE_DIR = DATA_DIR / "images"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
+MODELS_DIR = PROJECT_ROOT / "models"
+DASHBOARDS_DIR = PROJECT_ROOT / "dashboards"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-PRIMARY_CHECKPOINT = PROJECT_ROOT / "benign_malignant_best.pth"
-SECONDARY_CHECKPOINT = OUTPUTS_DIR / "best_model.pth"
-MULTICLASS_CHECKPOINT = PROJECT_ROOT / "task3_best_classifier.pth"
-UNET_CHECKPOINT = OUTPUTS_DIR / "best_unet_model.pth"
-ATTRIBUTE_CHECKPOINT = PROJECT_ROOT / "task2_attribute_classifier_best.pth"
+
+PRIMARY_CHECKPOINT = MODELS_DIR / "benign_malignant_best.pth"
+SECONDARY_CHECKPOINT = MODELS_DIR / "best_model.pth"
+MULTICLASS_CHECKPOINT = MODELS_DIR / "task3_best_classifier.pth"
+UNET_CHECKPOINT = MODELS_DIR / "best_unet_model.pth"
+ATTRIBUTE_CHECKPOINT = MODELS_DIR / "task2_attribute_classifier_best.pth"
 DEFAULT_THRESHOLD = 0.50
 HISTORY_COLUMNS = [
     "Time",
     "Source",
     "Decision",
+    "Predicted Class",
     "Risk Band",
     "Confidence %",
     "Malignant %",
@@ -57,12 +61,12 @@ SKIN_CARE_SOURCES = {
     "MedlinePlus Skin Care": "https://medlineplus.gov/skinconditions.html",
 }
 PLOT_FILES = {
-    "Confusion Matrix": PROJECT_ROOT / "confusion matrix.png",
-    "ROC Curve": PROJECT_ROOT / "Roc curve.png",
-    "PR Curve": PROJECT_ROOT / "precision recall curve.png",
-    "Training Loss": PROJECT_ROOT / "training loss.png",
-    "Validation Accuracy": PROJECT_ROOT / "validation accuracy.png",
-    "Validation AUC": PROJECT_ROOT / "validation auc.png",
+    "Confusion Matrix": DASHBOARDS_DIR / "confusion matrix.png",
+    "ROC Curve": DASHBOARDS_DIR / "Roc curve.png",
+    "PR Curve": DASHBOARDS_DIR / "precision recall curve.png",
+    "Training Loss": DASHBOARDS_DIR / "training loss.png",
+    "Validation Accuracy": DASHBOARDS_DIR / "validation accuracy.png",
+    "Validation AUC": DASHBOARDS_DIR / "validation auc.png",
 }
 
 primary_model = None
@@ -758,6 +762,7 @@ def analyze_image(image: Image.Image, threshold: float, source_name: str, use_tt
         "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "Source": source_name,
         "Decision": decision,
+        "Predicted Class": multiclass_result["top_class"] if multiclass_result else "N/A",
         "Risk Band": risk_band,
         "Confidence %": f"{confidence * 100:.1f}%",
         "Malignant %": f"{malignant_prob * 100:.1f}%",
@@ -1910,7 +1915,6 @@ if __name__ == "__main__":
 
     demo.launch(
         share=False, 
-        server_port=7860, 
         show_error=True,
         theme=theme,
         css=css

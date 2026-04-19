@@ -38,6 +38,7 @@ from focal_loss import FocalLoss
 DEFAULT_CONFIG = {
     "data_dir":       "data",
     "output_dir":     "outputs",
+    "models_dir":     "models",
     "batch_size":     32,
     "epochs":         20,
     "lr":             3e-4,
@@ -123,7 +124,9 @@ def train_multiclass(config: dict):
 
     data_dir = Path(config["data_dir"])
     output_dir = Path(config["output_dir"])
+    models_dir = Path(config["models_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
+    models_dir.mkdir(parents=True, exist_ok=True)
 
     train_csv = str(data_dir / "train_multiclass.csv")
     val_csv   = str(data_dir / "val_multiclass.csv")
@@ -165,7 +168,7 @@ def train_multiclass(config: dict):
     best_acc = 0.0
     no_improve = 0
     history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": []}
-    save_path = str(output_dir / "best_model_multiclass.pth")
+    save_path = str(models_dir / "best_model_multiclass.pth")
 
     print(f"Starting multi-class training for {config['epochs']} epochs...\n")
 

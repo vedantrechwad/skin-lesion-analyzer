@@ -24,6 +24,7 @@ from evaluate import compute_metrics
 DEFAULT_CONFIG = {
     "data_dir":     "data",
     "output_dir":   "outputs",
+    "models_dir":   "models",
     "batch_size":   32,
     "epochs":       20,
     "lr":           3e-4,
@@ -98,7 +99,9 @@ def train(config: dict):
     # Paths
     data_dir   = Path(config["data_dir"])
     output_dir = Path(config["output_dir"])
+    models_dir = Path(config["models_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)
+    models_dir.mkdir(parents=True, exist_ok=True)
 
     # Data
     train_loader, val_loader = get_dataloaders(
@@ -172,7 +175,7 @@ def train(config: dict):
             no_improve = 0
             save_model(
                 model, optimizer, epoch,
-                path=str(output_dir / "best_model.pth"),
+                path=str(models_dir / "best_model.pth"),
                 extra={"val_auc": val_auc, "val_acc": val_acc, "config": config},
             )
             print(f"  New best AUC: {best_auc:.4f}")
@@ -188,7 +191,7 @@ def train(config: dict):
         json.dump(history, f, indent=2)
 
     print(f"\nTraining complete. Best Val AUC: {best_auc:.4f}")
-    print(f"   Model saved to {output_dir / 'best_model.pth'}")
+    print(f"   Model saved to {models_dir / 'best_model.pth'}")
     return history
 
 
