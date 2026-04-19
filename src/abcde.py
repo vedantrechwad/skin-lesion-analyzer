@@ -91,7 +91,7 @@ def _compute_asymmetry(mask: np.ndarray) -> dict:
     """
     h, w = mask.shape
     if mask.sum() == 0:
-        return {"score": 0.0, "rating": "N/A", "detail": "No lesion detected"}
+        return {"score": 0.0, "rating": "N/A", "risk": 0, "detail": "No lesion detected"}
 
     # Normalize mask to 0-1
     m = (mask > 0).astype(np.float32)

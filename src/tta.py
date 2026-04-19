@@ -90,7 +90,13 @@ def predict_with_tta(
     for t in tta_transforms:
         tensor = t(pil_image).unsqueeze(0).to(device)
         output = model(tensor)
-        probs = F.softmax(output, dim=1)[0].cpu().numpy()
+        
+        # Detect if model is single-output (binary sigmoid) or multi-output (softmax)
+        if output.shape[1] == 1:
+            probs = torch.sigmoid(output)[0].cpu().numpy()
+        else:
+            probs = F.softmax(output, dim=1)[0].cpu().numpy()
+            
         all_probs.append(probs)
 
     # Average across all augmentations

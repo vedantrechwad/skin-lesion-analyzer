@@ -61,9 +61,22 @@ class GradCAM:
 
         # Forward pass
         output = self.model(image_tensor)
-        probs  = torch.softmax(output, dim=1)
-        pred_class = probs.argmax(dim=1).item()
-        confidence = probs[0, pred_class].item()
+        
+        # Detect model type
+        if output.shape[1] == 1:
+            # Single-output binary (sigmoid)
+            p = torch.sigmoid(output)[0, 0].item()
+            # Default internal prediction at 0.5 threshold
+            p_class = 1 if p >= 0.5 else 0
+            conf = p if p_class == 1 else 1.0 - p
+            
+            pred_class = p_class
+            confidence = conf
+        else:
+            # Multi-output (softmax)
+            probs  = torch.softmax(output, dim=1)
+            pred_class = probs.argmax(dim=1).item()
+            confidence = probs[0, pred_class].item()
 
         # Use predicted class if no target specified
         if target_class is None:
@@ -71,7 +84,15 @@ class GradCAM:
 
         # Backward pass for target class
         self.model.zero_grad()
-        class_score = output[0, target_class]
+        if output.shape[1] == 1:
+            # For sigmoid output, target_class 1 is the output itself, 
+            # target_class 0 is the negative output (evidence for benign)
+            class_score = output[0, 0]
+            if target_class == 0:
+                class_score = -class_score
+        else:
+            class_score = output[0, target_class]
+            
         class_score.backward()
 
         # Pool gradients across spatial dimensions [C]
